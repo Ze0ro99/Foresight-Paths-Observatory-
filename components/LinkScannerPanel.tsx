@@ -15,6 +15,29 @@ type InspectionReport={
  appSignals:{title:string|null;description:string|null;hasViewport:boolean;hasPiSdk:boolean;hasPiInit:boolean;hasPiAuthenticate:boolean;hasPrivacyPolicy:boolean};
  recommendations:string[];limitations:string[];
 };
+type IntegrationBlueprint={title:string;priority:'high'|'medium'|'exploratory';why:string;steps:string[]};
+
+function buildIntegrationBlueprints(report:InspectionReport,ar:boolean):IntegrationBlueprint[]{
+ const securityGaps=[
+  !report.transport.https&&(ar?'تفعيل HTTPS وإعادة توجيه HTTP بأمان':'Enforce HTTPS and safely redirect HTTP'),
+  !report.securityHeaders.strictTransportSecurity&&(ar?'إضافة HSTS بعد التأكد من إعداد HTTPS':'Add HSTS after confirming HTTPS is correctly configured'),
+  !report.securityHeaders.contentSecurityPolicy&&(ar?'كتابة CSP صريحة تسمح فقط بالمصادر اللازمة':'Define an explicit CSP with only required origins'),
+  !report.securityHeaders.frameProtection&&(ar?'تحديد سياسة frame-ancestors المناسبة لتضمين PiNet':'Set frame-ancestors for the intended PiNet embedding'),
+ ].filter(Boolean);
+ const piGaps=[
+  !report.appSignals.hasPiSdk&&(ar?'تحميل Pi SDK من المصدر الرسمي':'Load the Pi SDK from the official source'),
+  !report.appSignals.hasPiInit&&(ar?'تهيئة Pi SDK قبل استدعاء المصادقة':'Initialize the Pi SDK before authentication'),
+  !report.appSignals.hasPiAuthenticate&&(ar?'إضافة مصادقة Pi مع تحقق خادمي من الهوية':'Add Pi sign-in with server-side identity verification'),
+  !report.appSignals.hasPrivacyPolicy&&(ar?'نشر سياسة خصوصية واضحة وسهلة الوصول':'Publish a clear, accessible privacy policy'),
+ ].filter(Boolean);
+ return [
+  {title:ar?'الأمان وجاهزية Pi':'Security & Pi readiness',priority:securityGaps.length?'high':'medium',why:securityGaps.length?(ar?'تظهر نتيجة الفحص مؤشرات تحتاج مراجعة قبل الإطلاق.':'The scan found configuration signals worth reviewing before launch.'):(ar?'راجع الإعدادات دوريًا واختبرها داخل Pi Browser وPiNet.':'Re-test these controls in Pi Browser and the PiNet embed.'),steps:securityGaps.length?securityGaps as string[]:[ar?'اختبر تسجيل الدخول والجلسة داخل Pi Browser.':'Exercise sign-in and session behavior in Pi Browser.',ar?'تحقق من سياسة التضمين داخل PiNet دون تعطيل الحماية.':'Verify PiNet embedding without weakening protections.']},
+  {title:ar?'وكلاء مساعدة المطوّر':'Developer-assistant agents',priority:'medium',why:ar?'يمكن للوكلاء تحويل نتائج الفحص إلى مهام مراجعة قابلة للتتبع؛ لا ينبغي منحهم صلاحية نشر تلقائي.':'Agents can turn scan findings into reviewable tasks; they should not receive automatic deployment authority.',steps:[ar?'وكيل مراجعة يحوّل كل ملاحظة إلى مهمة مع دليل ودرجة أولوية.':'A review agent converts each finding into a cited, prioritized task.',ar?'وكيل اختبار ينشئ حالات تحقق وبيانات اختبار غير حساسة.':'A test agent drafts validation cases and non-sensitive test data.',ar?'استخدم Hermes أو SoloHost كتكاملات اختيارية بعد التحقق من واجهاتها وصلاحياتها.':'Treat Hermes or SoloHost as optional integrations only after verifying their APIs and permissions.']},
+  {title:ar?'خيار عقد ذكي على Testnet':'Testnet smart-contract option',priority:'exploratory',why:ar?'لا يثبت فحص الرابط أن التطبيق يحتاج عقدًا؛ اقترح العقد فقط إذا كانت هناك حاجة فعلية إلى حالة مشتركة أو قواعد قابلة للتحقق.':'A URL scan cannot establish that a contract is needed. Consider one only for a real shared-state or verifiable-rules requirement.',steps:[ar?'اكتب المتطلبات ومخطط التهديدات قبل اختيار Soroban أو أي شبكة.':'Document requirements and a threat model before choosing Soroban or another network.',ar?'ابدأ بعقد تجريبي واختبارات وحدود صلاحيات واضحة.':'Start with a testnet contract, tests, and explicit authorization boundaries.',ar?'لا تفعّل Mainnet أو توقيعًا أو تحويلات من هذه التوصية.':'This proposal does not enable Mainnet, signing, or transfers.']},
+  {title:ar?'اشتراكات ودفعات مستقبلية':'Future subscriptions & payments',priority:'exploratory',why:ar?'قد تلائم الاشتراكات المنتج، لكنها تتطلب موافقة المستخدم وسجل استحقاق موثوقًا واختبارات تكرار آمنة.':'Subscriptions may fit the product, but require user consent, a trusted entitlement ledger, and idempotency tests.',steps:[ar?'حدّد المزايا المدفوعة والإلغاء والاسترداد قبل التصميم.':'Define paid entitlements, cancellation, and refunds first.',ar?'اختبر دورة الدفع على Test-Pi فقط مع مفاتيح خادمية وحماية من التكرار.':'Test with Test-Pi only, server-side credentials, and idempotency protection.',ar?'اترك المدفوعات وMainnet معطّلين حتى الموافقة والاختبارات.':'Keep payments and Mainnet disabled until approval and tests pass.']},
+ ];
+}
+
 function StatusLine({ok,label}:{ok:boolean;label:string}){
  return <div className="flex items-start gap-2 text-sm">{ok?<CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true"/>:<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden="true"/>}<span className={ok?'text-white/80':'text-white/70'}>{label}</span></div>;
 }
@@ -109,6 +132,23 @@ export default function LinkScannerPanel({locale}:{locale:AppLocale}){
     </div></div>
     {report.redirects.length>0&&<p className="mt-4 text-xs text-white/45">{ar?'تحويلات آمنة تمت إعادة مراجعتها: ':'Revalidated redirects: '}{report.redirects.map((item)=>item.host).join(' → ')}</p>}
     {report.recommendations.length>0&&<div className="mt-5 border-t border-white/10 pt-4"><h4 className="text-sm font-bold text-white">{ar?'مقترحات التحسين':'Improvement recommendations'}</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-white/65">{report.recommendations.map((item)=><li key={item}>{item}</li>)}</ul></div>}
+    <div className="mt-5 border-t border-white/10 pt-4">
+     <div className="flex flex-wrap items-center justify-between gap-2">
+      <h4 className="text-sm font-bold text-white">{ar?'مقترحات تطوير قابلة للتنفيذ':'Actionable improvement blueprints'}</h4>
+      <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] text-white/45">{ar?'اقتراحات فقط · لا تغيّر التطبيق تلقائيًا':'Suggestions only · no automatic changes'}</span>
+     </div>
+     <p className="mt-1 text-xs leading-5 text-white/45">{ar?'هذه المقترحات مستمدة من إشارات الفحص السطحي؛ راجعها مع مطوّر قبل الدمج.':'These proposals are derived from passive scan signals. Review them with a developer before implementation.'}</p>
+     <div className="mt-3 grid gap-3 xl:grid-cols-2">
+      {buildIntegrationBlueprints(report,ar).map((blueprint,index)=><article key={blueprint.title} className="rounded-lg border border-white/10 bg-white/[0.025] p-3">
+       <div className="flex flex-wrap items-center justify-between gap-2">
+        <h5 className="text-sm font-semibold text-white">{index+1}. {blueprint.title}</h5>
+        <span className={'rounded-full px-2 py-0.5 text-[10px] '+(blueprint.priority==='high'?'bg-amber-400/10 text-amber-200':blueprint.priority==='medium'?'bg-cyan-400/10 text-cyan-200':'bg-violet-400/10 text-violet-200')}>{blueprint.priority==='high'?(ar?'أولوية عالية':'High priority'):blueprint.priority==='medium'?(ar?'مراجعة':'Review'):(ar?'استكشافي':'Exploratory')}</span>
+       </div>
+       <p className="mt-2 text-xs leading-5 text-white/55">{blueprint.why}</p>
+       <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-5 text-white/70">{blueprint.steps.map((step)=><li key={step}>{step}</li>)}</ol>
+      </article>)}
+     </div>
+    </div>
     <p className="mt-4 text-xs leading-5 text-white/40">{ar?'هذا تقرير أولي غير اعتمادي. لا يثبت اجتياز مراجعة Pi ولا يغني عن اختبار أمني احترافي.':'This is a preliminary, non-certifying report. It does not prove Pi approval or replace a professional security assessment.'}</p>
     <a href={report.finalUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-cyan-200 underline underline-offset-4"><ExternalLink className="h-3 w-3" aria-hidden="true"/>{ar?'فتح الرابط في علامة تبويب منفصلة':'Open target in a separate tab'}</a>
    </div>}
