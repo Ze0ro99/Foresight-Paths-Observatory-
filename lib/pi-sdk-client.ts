@@ -6,6 +6,12 @@ type PiSdk = {
     scopes: string[],
     onIncompletePaymentFound: (payment: unknown) => void,
   ) => Promise<{ accessToken: string; user?: { uid?: string; username?: string } }>;
+  signIn?: (options: {
+    clientId: string;
+    redirectUri: string;
+    scopes?: string[];
+    state?: string;
+  }) => void;
 };
 
 type PiWindowState = Window & {

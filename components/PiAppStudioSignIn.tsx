@@ -3,26 +3,6 @@
 import { useEffect, useState } from 'react';
 import { initializePiSdk } from '@/lib/pi-sdk-client';
 
-type PiSdk = {
-  init: (config: { version: string }) => Promise<void> | void;
-  authenticate: (
-    scopes: string[],
-    onIncompletePaymentFound: (payment: unknown) => void,
-  ) => Promise<{ accessToken?: string }>;
-  signIn: (options: {
-    clientId: string;
-    redirectUri: string;
-    scopes?: string[];
-    state?: string;
-  }) => void;
-};
-
-declare global {
-  interface Window {
-    Pi?: PiSdk;
-  }
-}
-
 export default function PiAppStudioSignIn() {
   const [username, setUsername] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -121,6 +101,7 @@ export default function PiAppStudioSignIn() {
       await initializePiSdk();
       const state = window.crypto.randomUUID();
       sessionStorage.setItem('pi_oauth_state', state);
+      if (!window.Pi.signIn) throw new Error('Pi OAuth sign-in is not available in this SDK.');
       window.Pi.signIn({
         clientId,
         redirectUri,
