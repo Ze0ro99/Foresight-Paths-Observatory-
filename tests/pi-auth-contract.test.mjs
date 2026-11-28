@@ -14,8 +14,8 @@ test('loads official Pi SDK before application hydration with a request nonce', 
 test('awaits Pi SDK v2 initialization without passing sandbox', async () => {
   const sdk = await read('../lib/pi-sdk-client.ts');
   assert.match(sdk, /await initialization/);
-  assert.match(sdk, /init\\(\\{ version: '2\\.0' \\}\\)/);
-  assert.doesNotMatch(sdk, /init\\(\\{[^}]*sandbox/);
+  assert.match(sdk, /init\(\{ version: '2\.0' \}\)/);
+  assert.doesNotMatch(sdk, /init\(\{[^}]*sandbox/);
 });
 
 test('App Studio sign-in requests username only and submits only the access token', async () => {
