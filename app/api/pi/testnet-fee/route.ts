@@ -24,7 +24,7 @@ export async function GET() {
     const ledger = payload._embedded?.records?.[0];
     const rawFee = ledger?.base_fee_in_stroops;
     const validFee =
-      (typeof rawFee === 'string' && /^\\d+$/.test(rawFee)) ||
+      (typeof rawFee === 'string' && /^\d+$/.test(rawFee)) ||
       (typeof rawFee === 'number' && Number.isSafeInteger(rawFee) && rawFee >= 0);
     if (!ledger?.sequence || !validFee) {
       return NextResponse.json(
