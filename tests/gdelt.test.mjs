@@ -2,15 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GDELT_BROAD_QUERY,
+  GDELT_FALLBACK_QUERY,
+  GDELT_PRIMARY_TIMEOUT_MS,
+  GDELT_FALLBACK_TIMEOUT_MS,
   GDELT_REFRESH_INTERVAL_SECONDS,
   classifyGdeltUpstreamError,
   parseGdeltResponse,
 } from '../lib/gdelt.mjs';
-import {
-  GDELT_FALLBACK_QUERY as EDGE_GDELT_FALLBACK_QUERY,
-  GDELT_PRIMARY_TIMEOUT_MS as EDGE_GDELT_PRIMARY_TIMEOUT_MS,
-  GDELT_FALLBACK_TIMEOUT_MS as EDGE_GDELT_FALLBACK_TIMEOUT_MS,
-} from '../supabase/functions/news-refresh/workbench.mjs';
 
 test('uses a five-minute shared refresh interval to avoid upstream request bursts', () => {
   assert.equal(GDELT_REFRESH_INTERVAL_SECONDS, 300);
@@ -22,13 +20,17 @@ test('groups the broad Boolean query and quotes multi-word terms', () => {
   assert.match(GDELT_BROAD_QUERY, /"artificial intelligence"/);
 });
 
-test('Edge Function has a narrower GDELT fallback query and bounded timeouts', () => {
-  assert.ok(EDGE_GDELT_FALLBACK_QUERY.startsWith('(') && EDGE_GDELT_FALLBACK_QUERY.endsWith(')'));
-  assert.ok(EDGE_GDELT_FALLBACK_QUERY.length < GDELT_BROAD_QUERY.length);
-  assert.match(EDGE_GDELT_FALLBACK_QUERY, /cyberattack/);
-  assert.equal(EDGE_GDELT_PRIMARY_TIMEOUT_MS, 6000);
-  assert.equal(EDGE_GDELT_FALLBACK_TIMEOUT_MS, 4000);
-  assert.ok(EDGE_GDELT_PRIMARY_TIMEOUT_MS + EDGE_GDELT_FALLBACK_TIMEOUT_MS <= 10000);
+test('keeps primary and fallback requests within a bounded route budget', () => {
+  assert.equal(GDELT_PRIMARY_TIMEOUT_MS, 7000);
+  assert.equal(GDELT_FALLBACK_TIMEOUT_MS, 5000);
+  assert.ok(GDELT_PRIMARY_TIMEOUT_MS + GDELT_FALLBACK_TIMEOUT_MS <= 12000);
+});
+
+test('provides a shorter fallback query for upstream HTML or rejected broad queries', () => {
+  assert.ok(GDELT_FALLBACK_QUERY.startsWith('(') && GDELT_FALLBACK_QUERY.endsWith(')'));
+  assert.ok(GDELT_FALLBACK_QUERY.length < GDELT_BROAD_QUERY.length);
+  assert.match(GDELT_FALLBACK_QUERY, /cyberattack/);
+  assert.match(GDELT_FALLBACK_QUERY, /earthquake/);
 });
 
 test('parses a valid GDELT article-list response', () => {
