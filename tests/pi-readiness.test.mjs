@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getPiGatewayReadiness } from '../lib/pi-readiness.mjs';
+import { getSupabaseServerKeyKind, getSupabaseServerHeaders } from '../lib/supabase-server-headers.mjs';
 
 const configured = {
   PI_API_KEY: 'testnet-server-key',
@@ -8,6 +9,7 @@ const configured = {
   SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_test_only_value',
   PI_NETWORK: 'Pi Testnet',
   PI_SANDBOX_MODE: 'true',
+  NEXT_PUBLIC_PI_SANDBOX_MODE: 'true',
   PI_DIRECT_TESTNET_ENABLED: 'false',
   PI_PAYMENTS_ENABLED: 'true',
   PI_PAYMENT_INTENT_LEDGER_READY: 'true',
@@ -34,23 +36,27 @@ test('placeholder server keys never enable Testnet payment execution', () => {
   assert.equal(result.status, 'awaiting_server_credentials');
 });
 
-test('Sandbox Testnet payment requires credentials, explicit network, and release flags', () => {
+test('Sandbox Testnet payment requires credentials, explicit network, matching SDK settings, and release flags', () => {
   const result = getPiGatewayReadiness(configured);
   assert.equal(result.paymentEnabled, true);
   assert.equal(result.network, 'Pi Testnet');
   assert.equal(result.sandboxMode, true);
+  assert.equal(result.clientSandboxMode, true);
+  assert.equal(result.sandboxSettingsMatch, true);
   assert.equal(result.status, 'testnet_payment_release_enabled');
   assert.deepEqual(result.missingRequirements, []);
 });
 
-test('direct SDK mode is permitted only with explicit Testnet network and direct-mode flag', () => {
+test('direct SDK mode is permitted only with explicit Testnet network, matching browser setting, and direct-mode flag', () => {
   const result = getPiGatewayReadiness({
     ...configured,
     PI_SANDBOX_MODE: 'false',
+    NEXT_PUBLIC_PI_SANDBOX_MODE: 'false',
     PI_DIRECT_TESTNET_ENABLED: 'true',
   });
   assert.equal(result.paymentEnabled, true);
   assert.equal(result.sandboxMode, false);
+  assert.equal(result.clientSandboxMode, false);
   assert.equal(result.directTestnetEnabled, true);
   assert.equal(result.network, 'Pi Testnet');
 });
@@ -59,11 +65,24 @@ test('sandbox false without the direct Testnet flag fails closed', () => {
   const result = getPiGatewayReadiness({
     ...configured,
     PI_SANDBOX_MODE: 'false',
+    NEXT_PUBLIC_PI_SANDBOX_MODE: 'false',
     PI_DIRECT_TESTNET_ENABLED: 'false',
   });
   assert.equal(result.paymentEnabled, false);
   assert.equal(result.status, 'direct_testnet_mode_not_enabled');
   assert.ok(result.missingRequirements.includes('PI_DIRECT_TESTNET_ENABLED=true'));
+});
+
+test('mismatched server and browser sandbox settings fail closed', () => {
+  const result = getPiGatewayReadiness({
+    ...configured,
+    PI_SANDBOX_MODE: 'false',
+    NEXT_PUBLIC_PI_SANDBOX_MODE: 'true',
+    PI_DIRECT_TESTNET_ENABLED: 'true',
+  });
+  assert.equal(result.paymentEnabled, false);
+  assert.equal(result.status, 'sandbox_mode_mismatch');
+  assert.ok(result.missingRequirements.includes('NEXT_PUBLIC_PI_SANDBOX_MODE must match PI_SANDBOX_MODE'));
 });
 
 test('Mainnet or any unsupported network cannot pass the Testnet release gate', () => {
@@ -85,8 +104,19 @@ test('a missing payment-intent ledger flag keeps payments disabled', () => {
   assert.ok(result.missingRequirements.includes('PI_PAYMENT_INTENT_LEDGER_READY=true'));
 });
 
-test('a public or unrecognized Supabase key never marks the private ledger configured', () => {
-  for (const key of ['sb_publishable_test_value', 'not-a-supabase-key', '']) {
+
+test('Supabase private ledger accepts only elevated server key formats', () => {
+  assert.equal(getSupabaseServerKeyKind('sb_secret_test_only_value'), 'secret_key');
+  assert.equal(getSupabaseServerKeyKind('sb_publishable_public_key'), 'publishable_key');
+  assert.equal(getSupabaseServerKeyKind(''), 'missing');
+  assert.throws(() => getSupabaseServerHeaders('sb_publishable_public_key'));
+  assert.deepEqual(getSupabaseServerHeaders('sb_secret_test_only_value'), {
+    apikey: 'sb_secret_test_only_value',
+  });
+});
+
+test('publishable and unknown Supabase keys never configure the private Pi ledger', () => {
+  for (const key of ['sb_publishable_public_key', 'not-a-server-key', '']) {
     const result = getPiGatewayReadiness({
       ...configured,
       SUPABASE_SERVICE_ROLE_KEY: key,

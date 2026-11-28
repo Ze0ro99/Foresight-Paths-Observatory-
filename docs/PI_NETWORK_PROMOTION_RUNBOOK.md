@@ -2,71 +2,59 @@
 
 ## Scope
 
-Foresight Paths V1 is a Pi Testnet application. The registered Pi app network is immutable: disabling SDK Sandbox does not change a Testnet app into a Mainnet app. A Mainnet release requires a separately registered Mainnet app, its own Server API Key, a separately configured public URL, and an independent release review.
+Foresight Paths V1 is registered on **Pi Testnet**. The app's registered network is fixed in Pi Developer Portal; changing the SDK Sandbox flag does not change the registered network or enable Mainnet. Any future Mainnet release requires a separate Mainnet app, separate credentials and deployment, an independent security review, and explicit owner approval.
 
 ## Testnet operating modes
 
-The browser SDK Sandbox flag and the registered app network are independent settings.
-
-| Mode | Browser SDK | Server configuration | Intended use |
+| Mode | Pi SDK initialization | Server settings | Use |
 | --- | --- | --- | --- |
-| Sandbox Testnet | `sandbox: true` | `PI_NETWORK=Pi Testnet`, `PI_SANDBOX_MODE=true` | SDK sandbox testing |
-| Direct Testnet | `sandbox: false` | `PI_NETWORK=Pi Testnet`, `PI_SANDBOX_MODE=false`, `PI_DIRECT_TESTNET_ENABLED=true` | Pi Browser testing against the registered Testnet app |
-| Mainnet | Separate Mainnet app | Not supported by this V1 gateway | Future, separately approved release |
+| Sandbox Testnet | `Pi.init({ version: "2.0", sandbox: true })` | `PI_NETWORK=Pi Testnet`, `PI_SANDBOX_MODE=true`, `NEXT_PUBLIC_PI_SANDBOX_MODE=true` | Development Sandbox only |
+| Direct Testnet | `Pi.init({ version: "2.0", sandbox: false })` | `PI_NETWORK=Pi Testnet`, `PI_SANDBOX_MODE=false`, `NEXT_PUBLIC_PI_SANDBOX_MODE=false`, `PI_DIRECT_TESTNET_ENABLED=true` | Direct Pi Browser testing against the registered Testnet app |
+| Mainnet | Separate app and deployment | Not supported by V1 | Future release only |
 
-Direct Testnet mode is deliberately opt-in. If the browser and server settings disagree, or the explicit Testnet network is missing, payment execution remains disabled.
+The server refuses payment execution when the registered network is missing/unsupported, browser/server Sandbox settings differ, or direct mode is not explicitly enabled. The normal V1 sign-in requests the `username` scope only.
 
-## Vercel Preview variables
+## Vercel environment variables
 
-Configure secrets directly in Vercel. Never paste them into chat, source files, build logs, or client-visible variables.
+Configure values directly in Vercel. Never paste secret values into chat, source files, browser forms, or logs.
 
-- `PI_API_KEY`: Server API Key copied from the registered **Pi Testnet app**.
 - `PI_NETWORK`: exact value `Pi Testnet`.
-- `PI_SANDBOX_MODE`: `true` for Sandbox, or `false` for direct Testnet.
-- `NEXT_PUBLIC_PI_SANDBOX_MODE`: same boolean string as `PI_SANDBOX_MODE`; controls only browser SDK initialization.
-- `PI_DIRECT_TESTNET_ENABLED`: set `true` only when intentionally testing direct Testnet mode; otherwise `false`.
-- `PI_PAYMENTS_ENABLED`: keep `false` until the public HTTPS Preview and Pi Browser authentication checks are ready. Enable only for a controlled Testnet payment test.
-- `PI_PAYMENT_INTENT_LEDGER_READY`: `true` only while the private Supabase payment-intent RPCs and service-role runtime secret are verified.
-- `PI_ENTITLEMENT_LEDGER_ENABLED`: keep `false`; V1 records verified demo settlements but does not grant credits or paid features.
+- `PI_SANDBOX_MODE`: `false` for direct Testnet; `true` only for Sandbox.
+- `NEXT_PUBLIC_PI_SANDBOX_MODE`: same boolean string as `PI_SANDBOX_MODE`.
+- `PI_DIRECT_TESTNET_ENABLED`: `true` only when intentionally testing direct Pi Testnet mode.
+- `PI_APP_SESSION_SECRET`: server-only session-encryption secret, at least 32 characters.
+- `PI_API_KEY`: Testnet Server API Key; server-only and only needed for Platform API/payment operations.
+- `SUPABASE_SERVICE_ROLE_KEY`: elevated server-only key for private ledger RPCs; never use a publishable/anon key and never expose it in a browser variable.
+- `PI_PAYMENTS_ENABLED`: keep `false` until a separate, explicitly approved Test-Pi payment test.
+- `PI_PAYMENT_INTENT_LEDGER_READY`: keep `false` until the private RPCs and service-role credential are verified at runtime.
+- `PI_ENTITLEMENT_LEDGER_ENABLED`: keep `false`; V1 does not issue paid credits or entitlements.
 - `PI_MAINNET_PAYMENTS_APPROVED`: keep `false`.
 
-Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. The publishable Supabase key may be exposed only for RLS-protected public read operations.
+## Pi sign-in and public URL
 
-## Pi Developer Portal and public URL
+1. Select the existing Pi Testnet app in Developer Portal and confirm its exact Production/Development URL settings.
+2. The App Studio sign-in path requests `username` only and sends the returned access token to the server-side App Studio exchange endpoint. The server validates the returned Pioneer identity and session token before issuing its encrypted HttpOnly cookie. This external endpoint still requires an actual Pi Browser login test.
+3. The separate Pi Sign-In OAuth option uses the registered HTTPS redirect URI and a random `state`; the browser checks state and clears the URL fragment, then the server validates the access token with Pi `GET /v2/me` before issuing a separate encrypted HttpOnly cookie.
+4. A Vercel Preview marked `READY` is not necessarily public. Keep SSO enabled; use an owner-approved public HTTPS app URL for Pi Browser testing.
+5. Confirm `GET /api/pi/verify` reports `network: Pi Testnet`, matching SDK/server Sandbox configuration, direct-Testnet status, and no secrets.
+6. Test login, logout, session persistence after refresh, and rejection of invalid/expired tokens. Do not run payments in this phase.
 
-1. Confirm the selected app is registered as **Pi Testnet**.
-2. Configure the Testnet app's Development URL to the approved public HTTPS V1 URL.
-3. Use a deployment reachable by Pi Browser. Do not disable Vercel SSO on an existing protected deployment merely to bypass authentication; instead arrange an explicitly approved public Testnet preview URL or a separate public Testnet deployment with least-privilege data.
-4. Confirm SDK v2 loads from `https://sdk.minepi.com/pi-sdk.js`.
-5. Confirm `Pi.authenticate(['username', 'payments'])` succeeds and the server independently validates the Pioneer token with `/v2/me`.
-6. Confirm `GET /api/pi/verify` reports `network: Pi Testnet`, the expected Sandbox setting, and the exact missing gates without returning any secret.
-7. Test the 0.1 and 1 Test-Pi demo plans only. Verify owner UID, app metadata, U2A direction, network, server-side price, approval, completion, authoritative read-back, and private ledger idempotency.
-8. Test cancellation, invalid metadata, wrong user, duplicate callback, and incomplete-payment recovery.
-9. Confirm every test response reports `entitlementGranted: false`.
+## Payment and Mainnet boundaries
 
-## Mainnet promotion — future, not part of V1
+Payment approval/completion/recovery remain disabled. The backend's plan prices and Pi Testnet payment ownership/network checks do not make a payment test safe by themselves. Before a Test-Pi transaction, separately approve the exact demo amount and ensure the private ledger uses a valid service-role key. Every test response must keep `entitlementGranted: false`.
 
-Mainnet is a separate application registration and deployment, not an environment toggle on the Testnet app.
-
-Before any Mainnet work:
-- Register a new Mainnet app in Pi Developer Portal and record its immutable app identity.
-- Create a separate Vercel environment/project or strictly isolated custom environment with its own Mainnet URL and Server API Key.
-- Use a separate database schema/project or independently isolated ledger namespace; do not mix Testnet and Mainnet payment intents.
-- Add explicit server-side network allowlisting and verify every returned payment reports the expected Mainnet network.
-- Complete entitlement issuance, refund/reversal, reconciliation, abuse controls, audit logging, rate limits, and operational support.
-- Obtain explicit owner approval and perform a separate security review and live end-to-end validation.
-- Do not enable A2U payouts, automatic signing, x402 settlement, or paid entitlement delivery as a side effect of enabling Mainnet.
+Mainnet is not an environment toggle on this Testnet app. A future Mainnet release requires a separate application registration, URL, Server API Key, isolated ledger namespace, entitlement/refund design, independent security review, and explicit owner approval. Do not enable A2U, auto-signing, x402 settlement, or paid entitlement delivery as a side effect.
 
 ## V1 release gates
 
-- GitHub Actions: lint, unit tests, typecheck, and production build all pass on the exact release commit.
-- Vercel Preview: READY on the exact commit; no stale deployment may be used as evidence.
-- Pi Browser: app URL opens publicly over HTTPS and SDK authentication succeeds.
-- Backend: Testnet identity and payment validation succeed; invalid and cross-user cases fail closed.
-- Supabase: private ledger RPCs are service-role-only, idempotent, and verified by read-back.
-- Operations: health endpoints are accurate; upstream outages are represented as partial/unavailable, never fabricated as success.
-- Release: PR reviewed and merged only after all applicable gates have evidence.
+- Exact-head GitHub Actions lint, unit tests, TypeScript, and production build pass.
+- Vercel Preview is `READY` on that exact commit; stale deploys do not count.
+- Pi Browser can open the approved public HTTPS URL and complete identity verification.
+- The App Studio exchange or optional OAuth path is tested end-to-end; invalid/cross-user sessions fail closed.
+- Supabase private RPCs are verified as service-role-only and the migration history matches the tracked migration files.
+- Health/data endpoints report partial or unavailable upstream data honestly.
+- Human review and explicit release approval are complete before merge or production release.
 
 ## Known external prerequisites
 
-The Testnet Server API Key must be entered directly in Vercel by the project owner. A public Pi Browser URL and a Vercel Preview deployment for the release commit are also required. Do not mark the V1 release complete until those checks are run.
+The owner must verify the Pi Developer Portal redirect/development URL and perform the real Pi Browser authentication test. The correct elevated `SUPABASE_SERVICE_ROLE_KEY` and Pi Testnet Server API Key, if payment/ledger functionality is needed, must be entered directly into Vercel. Do not send either secret to chat. Do not mark the app fully released until these gates are evidenced.

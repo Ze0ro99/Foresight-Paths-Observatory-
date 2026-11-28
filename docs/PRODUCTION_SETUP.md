@@ -18,6 +18,8 @@ Add the following under **Project → Settings → Environment Variables**, for 
 | `PI_SANDBOX_MODE` | Pi server environment | `true` by default; `false` only for explicitly enabled direct Testnet mode. |
 | `PI_DIRECT_TESTNET_ENABLED` | Direct Testnet SDK mode | Must be `true` when `PI_SANDBOX_MODE=false`; does not change the app's registered network. |
 | `NEXT_PUBLIC_PI_SANDBOX_MODE` | Pi browser SDK environment | Must match `PI_SANDBOX_MODE`; client-side setting only. |
+| `PI_APP_SESSION_SECRET` | Encrypted Pi App Studio sessions | Server-only secret, at least 32 characters. |
+| `NEXT_PUBLIC_PI_OAUTH_CLIENT_ID` / `NEXT_PUBLIC_PI_OAUTH_REDIRECT_URI` | Optional Pi Sign-In OAuth | Public client configuration; redirect URI must exactly match Pi Developer Portal. |
 | `NEXT_PUBLIC_PI_PAYMENTS_ENABLED` | Pi browser permission scope | `false` for identity-only mode; set `true` only alongside the separately approved server payment gates. |
 | `PI_PAYMENTS_ENABLED` | Pi Testnet approval/completion | `false` by default; Preview-only demo release gate. |
 | `PI_PAYMENT_INTENT_LEDGER_READY` | Private payment-intent persistence | `false` by default; set only when the isolated Supabase private RPCs are configured. The server adapter sends modern `sb_secret_...` keys through the `apikey` header only, and sends the legacy JWT in both `apikey` and `Authorization: Bearer` for backward compatibility. |
@@ -41,6 +43,9 @@ If `/api/news` reports `SUPABASE_SERVER_KEY_MISCONFIGURED`, or Vercel logs show 
 Do **not** grant the `anon` or `authenticated` roles execute access to private ingestion/payment RPCs to work around a bad key. The RPCs must remain restricted to the server-side elevated role.
 
 ## 2. Pi integration boundary
+
+The app includes a username-only Pi App Studio sign-in route that validates the server exchange and issues an encrypted HttpOnly session. A separate optional Pi OAuth route validates OAuth `state` and verifies the access token against Pi `/v2/me`. Never trust client-supplied UID/username fields; test both paths in Pi Browser before release.
+
 
 The backend uses the official Pi Platform API v2:
 - Verify the user access token with `GET /me`.

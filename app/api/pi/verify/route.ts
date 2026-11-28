@@ -298,6 +298,8 @@ export async function GET() {
     status: readiness.status,
     network: readiness.network,
     sandboxMode: readiness.sandboxMode,
+    clientSandboxMode: readiness.clientSandboxMode,
+    sandboxSettingsMatch: readiness.sandboxSettingsMatch,
     directTestnetEnabled: readiness.directTestnetEnabled,
     serverKeyConfigured: readiness.piApiKeyConfigured,
     ledgerConfigured: readiness.ledgerConfigured,

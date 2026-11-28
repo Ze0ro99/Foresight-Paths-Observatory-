@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Server,
   Activity,
@@ -16,19 +16,7 @@ import {
   PIRC_STANDARDS_I18N,
 } from '@/lib/i18n-data';
 import { AppLocale } from '@/lib/types';
-import { getPiAuthScopes } from '@/lib/pi-auth-scopes.mjs';
-
-declare global {
-  interface Window {
-    Pi?: {
-      init: (options: { version: string; sandbox: boolean }) => void;
-      authenticate: (
-        scopes: string[],
-        onIncompletePaymentFound: (payment: unknown) => void
-      ) => Promise<{ accessToken: string; user: { uid?: string; username?: string } }>;
-    };
-  }
-}
+import { initializePiSdk } from '@/lib/pi-sdk-client';
 
 interface HealthPayload {
   protocol: string;
@@ -115,7 +103,7 @@ const PROTOCOL_UI: Record<
     headerDecodedHeading: 'ترويسة x402 المفككة (PAYMENT-REQUIRED / PAYMENT-RESPONSE)',
     sdkSectionTitle: 'مختبر التحقق الخادمي Pi SDK v2.0 وعقد الأمان (ECONOMIC_ENGINE_API_CONTRACT)',
     sdkDesc:
-      'يستخدم SDK الرسمي لمصادقة Pi ثم يتحقق الخادم من accessToken عبر /v2/me. المدفوعات والمكافآت لا تمنح أي استحقاق قبل إعداد سجل طلبات دائم والتحقق الكامل.',
+      'يستخدم SDK الرسمي لمصادقة Pi ثم يتحقق الخادم من accessToken عبر App Studio. المدفوعات والمكافآت لا تمنح أي استحقاق قبل إعداد سجل طلبات دائم والتحقق الكامل.',
     btnAuthMe: '1. تحقق الهوية (/api/pi/verify · auth_me)',
     btnU2AFlow: '2. دورة الدفع معطّلة حتى إعداد سجل الطلبات',
     btnAdsVerify: '3. مكافآت الإعلانات معطّلة',
@@ -155,7 +143,7 @@ const PROTOCOL_UI: Record<
       },
     ],
     separationTitle:
-      'الفصل المعماري الصريح: معايير PiNetwork/PiRC الرسمية مقابل مقترحات Ze0ro99/PiRC المجتمعية',
+      'الفصل بين تكامل Pi الرسمي ومقترحات PiRC المجتمعية الخاصة بالمشروع',
     docsSectionTitle: 'الوثائق الهندسية ومعايير الأمان المعتمدة (هاكاثون Pi Next)',
     docsSectionSub: 'أربع وثائق مرجعية تغطي الحدود المعمارية والاقتصاد المزدوج وحماية التسعير وخطة التسليم',
   },
@@ -203,7 +191,7 @@ const PROTOCOL_UI: Record<
           'Public map and research views are available without a forced login. Pi-only actions are gated behind server-side verification.',
       },
       {
-        step: '2. Server /v2/me Validation',
+        step: '2. App Studio Server Validation',
         detail:
           'Pi sessions are verified server-side. Subscriptions and paid entitlements stay disabled until a durable order ledger is configured.',
       },
@@ -219,7 +207,7 @@ const PROTOCOL_UI: Record<
       },
     ],
     separationTitle:
-      'Explicit Architectural Separation: Official PiNetwork/PiRC vs Community Ze0ro99/PiRC',
+      'Separation of Official Pi Integrations and This Project’s Community PiRC Proposals',
     docsSectionTitle: 'Pi Next Engineering & Safety Reference Documents',
     docsSectionSub: 'Four core blueprints covering ecosystem boundaries, 0.0001 Pi economics, server contract hardening, and submission readiness',
   },
@@ -267,7 +255,7 @@ const PROTOCOL_UI: Record<
           'Les cartes publiques et les vues de recherche sont accessibles sans connexion forcée. Les actions Pi sensibles exigent une vérification serveur.',
       },
       {
-        step: '2. Validation Serveur /v2/me',
+        step: '2. Validation Serveur App Studio',
         detail:
           'Les sessions Pi sont vérifiées côté serveur. Les abonnements restent désactivés sans registre de commandes persistant.',
       },
@@ -283,7 +271,7 @@ const PROTOCOL_UI: Record<
       },
     ],
     separationTitle:
-      'Séparation Architecturale : PiNetwork/PiRC Officiel vs Propositions Ze0ro99/PiRC',
+      'Séparation entre intégrations Pi officielles et propositions communautaires PiRC du projet',
     docsSectionTitle: 'Documents d’Architecture & Sécurité Hackathon Pi Next',
     docsSectionSub: 'Quatre références détaillant frontières, économie 0,0001 Pi, garde-fous serveur et livraison',
   },
@@ -331,9 +319,9 @@ const PROTOCOL_UI: Record<
           'Peta publik dan riset tersedia tanpa login wajib. Tindakan Pi sensitif memerlukan verifikasi server.',
       },
       {
-        step: '2. Validasi Server /v2/me',
+        step: '2. Validasi Server App Studio',
         detail:
-          'Permintaan langganan dan voting KYC mengirim Bearer accessToken ke server untuk verifikasi api.minepi.com/v2/me.',
+          'Permintaan langganan dan voting KYC mengirim Bearer accessToken ke server untuk verifikasi App Studio.',
       },
       {
         step: '3. Alur U2A direncanakan (dinonaktifkan)',
@@ -347,7 +335,7 @@ const PROTOCOL_UI: Record<
       },
     ],
     separationTitle:
-      'Pemisahan Arsitektur Tegas: Standar Resmi PiNetwork/PiRC vs Usulan Komunitas Ze0ro99/PiRC',
+      'Pemisahan integrasi Pi resmi dari usulan komunitas PiRC milik proyek ini',
     docsSectionTitle: '4 Dokumen Referensi Teknis & Keamanan Hackathon Pi Next',
     docsSectionSub: 'Cetak biru pemisahan standar, ekonomi 0.0001 Pi, kontrak keamanan server, dan jadwal rilis',
   },
@@ -372,7 +360,7 @@ const PROTOCOL_UI: Record<
     sdkSectionTitle: 'Trình Xác Thực Pi SDK v2.0 & Hợp Đồng ECONOMIC_ENGINE_API_CONTRACT',
     sdkDesc:
       'Dùng SDK Pi Browser chính thức và xác minh token ở máy chủ. Quyền lợi trả phí và thưởng quảng cáo vẫn tắt cho đến khi có lưu trữ bền vững và xác minh đáng tin cậy.',
-    btnAuthMe: '1. Xác Thực /v2/me (/api/pi/verify)',
+    btnAuthMe: '1. Xác Thực App Studio (/api/pi/verify)',
     btnU2AFlow: '2. Thanh toán tắt cho đến khi có sổ đơn hàng',
     btnAdsVerify: '3. Quảng cáo thưởng đã tắt',
     btnTamper403: '4. Kiểm tra giả mạo chỉ chạy trong CI',
@@ -395,9 +383,9 @@ const PROTOCOL_UI: Record<
           'Bản đồ công khai và nội dung nghiên cứu không yêu cầu đăng nhập bắt buộc. Tác vụ Pi nhạy cảm cần xác minh máy chủ.',
       },
       {
-        step: '2. Xác Minh /v2/me Trên Máy Chủ',
+        step: '2. Xác Minh App Studio Trên Máy Chủ',
         detail:
-          'Nâng cấp gói hoặc bỏ phiếu KYC gửi Bearer accessToken tới máy chủ để kiểm chứng với api.minepi.com/v2/me.',
+          'Nâng cấp gói hoặc bỏ phiếu KYC gửi Bearer accessToken tới máy chủ để kiểm chứng với App Studio.',
       },
       {
         step: '3. Quy trình U2A dự kiến (đã tắt)',
@@ -411,7 +399,7 @@ const PROTOCOL_UI: Record<
       },
     ],
     separationTitle:
-      'Phân Tách Kiến Trúc Rõ Ràng: Chuẩn Chính Thức PiNetwork/PiRC Với Đề Xuất Ze0ro99/PiRC',
+      'Tách biệt tích hợp Pi chính thức và đề xuất PiRC cộng đồng của dự án',
     docsSectionTitle: '4 Tài Liệu Tham Chiếu Kỹ Thuật & An Toàn Hackathon Pi Next',
     docsSectionSub: 'Ranh giới tiêu chuẩn, kinh tế gói 0,0001 Pi, bảo mật hợp đồng máy chủ và kế hoạch bàn giao',
   },
@@ -437,7 +425,6 @@ export default function ProtocolGatewayView({
   const [sdkHttpStatus, setSdkHttpStatus] = useState<number | null>(null);
   const [sdkResponseJson, setSdkResponseJson] = useState<string>('');
   const [loadingSdkCall, setLoadingSdkCall] = useState(false);
-  const piInitialized = useRef(false);
 
   const refreshGateways = async () => {
     try {
@@ -556,15 +543,9 @@ export default function ProtocolGatewayView({
         return;
       }
 
-      if (!piInitialized.current) {
-        window.Pi.init({
-          version: '2.0',
-          sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX_MODE !== 'false',
-        });
-        piInitialized.current = true;
-      }
+      await initializePiSdk();
       const auth = await window.Pi.authenticate(
-        getPiAuthScopes(),
+        ['username'],
         (payment) => {
           setSdkResponseJson(
             JSON.stringify(
@@ -580,24 +561,22 @@ export default function ProtocolGatewayView({
         }
       );
 
-      const res = await fetch('/api/pi/verify', {
+      const res = await fetch('/api/pi/auth', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + auth.accessToken,
-        },
-        body: JSON.stringify({ action: 'auth_me' }),
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: auth.accessToken }),
       });
       const data = await res.json();
       setSdkHttpStatus(res.status);
       setSdkResponseJson(
         JSON.stringify(
           {
-            piSdkUser: {
-              username: auth.user?.username ?? null,
-              uid: auth.user?.uid ?? null,
+            appStudioSession: {
+              authenticated: data.authenticated === true,
+              user: data.user ?? null,
             },
-            serverVerification: data,
+            identitySource: 'App Studio server response only',
           },
           null,
           2
