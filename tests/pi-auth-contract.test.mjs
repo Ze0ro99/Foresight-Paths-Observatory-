@@ -39,10 +39,11 @@ test('the legacy payment panel is now identity-only until explicit payment relea
   assert.doesNotMatch(panel, /createPayment|authenticate\(/);
 });
 
-test('protocol gateway uses the shared Pi SDK scope and initialization helpers', async () => {
+test('protocol gateway initializes Pi SDK before requesting username-only authentication', async () => {
   const protocol = await read('../components/ProtocolGatewayView.tsx');
-  assert.match(protocol, /getPiAuthScopes\(\)/);
   assert.match(protocol, /initializePiSdk\(/);
+  assert.match(protocol, /await initializePiSdk\(\)/);
+  assert.match(protocol, /authenticate\(\s*\[\s*'username'\s*\]/);
 });
 
 test('Pi App Studio sessions use encrypted HttpOnly cookies', async () => {
