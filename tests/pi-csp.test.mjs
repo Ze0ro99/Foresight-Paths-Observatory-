@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 test('Pi browser CSP uses a request nonce and explicit Pi origins', async () => {
   const middleware = await readFile(new URL('../middleware.ts', import.meta.url), 'utf8');
+  const nextConfig = await readFile(new URL('../next.config.ts', import.meta.url), 'utf8');
   const scriptSrc = middleware.match(/`script-src[^\`]+`/)?.[0] ?? '';
   const connectSrc = middleware.match(/"connect-src[^"]+"/)?.[0] ?? '';
   const frameAncestors = middleware.match(/"frame-ancestors[^"]+"/)?.[0] ?? '';
