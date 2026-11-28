@@ -23,7 +23,7 @@ test('ENCRYPTED_MAP_NODES covers Economist 2027, Great Awakening, and Q-Web coor
   assert.equal(london.epistemicTier, 'symbolic');
 });
 
-test('enrichGlobalSignal computes Gematria, Pi resonance, and nearest encrypted node', () => {
+test('enrichGlobalSignal marks Gematria/Pi overlays as symbolic rather than documented evidence', () => {
   const signal = enrichGlobalSignal({
     id: 'sig-test-1',
     source: 'USGS_Seismic',
@@ -39,7 +39,7 @@ test('enrichGlobalSignal computes Gematria, Pi resonance, and nearest encrypted 
 
   assert.ok(signal.gematriaOrdinal > 0);
   assert.ok(signal.piResonanceIndex > 0);
-  assert.equal(signal.epistemicTier, 'documented');
+  assert.equal(signal.epistemicTier, 'symbolic');
   assert.equal(signal.nearestEncryptedId, 'enc-giza-orion');
   assert.ok(signal.distanceToEncryptedKm > 400 && signal.distanceToEncryptedKm < 1000);
 });

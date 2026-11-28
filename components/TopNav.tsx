@@ -11,7 +11,8 @@ interface TopNavProps {
   onChangeLocale: (locale: AppLocale) => void;
   probabilities: ScenarioProbabilities;
   onResetSelection: () => void;
-  onOpenBackendMechanics: () => void;
+  isProMode: boolean;
+  onToggleProMode: () => void;
   onOpenAddEvent: () => void;
 }
 
@@ -20,7 +21,8 @@ export default function TopNav({
   onChangeLocale,
   probabilities,
   onResetSelection,
-  onOpenBackendMechanics,
+  isProMode,
+  onToggleProMode,
   onOpenAddEvent,
 }: TopNavProps) {
   const dominantId: ScenarioId = probabilities.dominant;
@@ -46,7 +48,7 @@ export default function TopNav({
 
         {/* Zone 2: Dominant Scenario + 5-Language Selector + Backend Studio */}
         <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
-          <div className="hidden lg:flex items-center gap-2 text-xs text-[#CBD5E1] tabular-nums">
+          <div className={isProMode ? 'hidden lg:flex items-center gap-2 text-xs text-[#CBD5E1] tabular-nums' : 'hidden'}>
             <span className="text-[#A5B4FC]">{copy.dominantLabel}</span>
             <span
               className="font-bold"
@@ -78,19 +80,19 @@ export default function TopNav({
 
           <button
             type="button"
-            onClick={onOpenBackendMechanics}
+            onClick={onToggleProMode}
             className="inline-flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0 rounded-md border border-[#312E81] bg-[#121329] px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold text-[#E0E7FF] hover:border-[#9333EA] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9333EA]"
           >
             <SlidersHorizontal
               className="h-3.5 w-3.5 text-[#C084FC]"
               aria-hidden="true"
             />
-            <span>{copy.backendBtn}</span>
+            <span>{isProMode ? (locale === 'ar' ? 'الوضع البسيط' : 'Simple Mode') : (locale === 'ar' ? 'وضع المحترفين' : 'Pro Mode')}</span>
           </button>
         </div>
 
         {/* Zone 3: 1 Primary CTA */}
-        <div className="shrink-0">
+        <div className={isProMode ? 'shrink-0' : 'hidden'}>
           <button
             type="button"
             onClick={onOpenAddEvent}

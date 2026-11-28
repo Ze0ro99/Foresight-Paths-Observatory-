@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/v1-testnet-direct-mode-rebased]
   push:
     branches: [main]
 
@@ -32,5 +32,11 @@ jobs:
         run: npm test
       - name: Type check
         run: npx tsc --noEmit
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check Supabase Edge Functions
+        run: deno check supabase/functions/agent-workbench/index.ts supabase/functions/news-refresh/index.ts
       - name: Production build
         run: npm run build

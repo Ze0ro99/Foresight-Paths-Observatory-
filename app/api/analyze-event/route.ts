@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { getGeminiModel } from '@/lib/gemini-config.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getPlatformCopy,
@@ -39,13 +40,33 @@ export async function POST(req: NextRequest) {
     mathMetrics?: MathTrajectoryMetrics;
   };
 
+  let rawBody: string;
   try {
-    body = await req.json();
+    rawBody = await req.text();
   } catch {
-    return NextResponse.json(
-      { error: 'Invalid JSON request body.' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Unable to read request body.' }, { status: 400 });
+  }
+  if (new TextEncoder().encode(rawBody).byteLength > 32 * 1024) {
+    return NextResponse.json({ error: 'Request body is too large.' }, { status: 413 });
+  }
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 });
+  }
+  if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+    return NextResponse.json({ error: 'Request body must be a JSON object.' }, { status: 400 });
+  }
+  body = parsedBody as typeof body;
+  if (body.mode !== undefined && body.mode !== 'analyze' && body.mode !== 'simulate_next') {
+    return NextResponse.json({ error: 'Unsupported analysis mode.' }, { status: 400 });
+  }
+  if (body.contextEvents !== undefined && !Array.isArray(body.contextEvents)) {
+    return NextResponse.json({ error: 'contextEvents must be an array.' }, { status: 400 });
+  }
+  if (body.event !== undefined && (!body.event || typeof body.event !== 'object' || Array.isArray(body.event))) {
+    return NextResponse.json({ error: 'event must be an object.' }, { status: 400 });
   }
 
   const locale = parseLocale(body.locale);
@@ -63,6 +84,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const model = getGeminiModel();
   const ai = new GoogleGenAI({
     apiKey,
     httpOptions: {
@@ -121,7 +143,7 @@ Return the full structured JSON analysis written strictly in ${targetLanguage}.`
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
+      model,
       contents: targetPrompt,
       config: {
         systemInstruction,
@@ -275,10 +297,15 @@ Return the full structured JSON analysis written strictly in ${targetLanguage}.`
     const parsed = JSON.parse(rawText);
     return NextResponse.json({ analysis: parsed });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'حدث خطأ غير متوقع أثناء التحليل.';
+    const errorName = err instanceof Error ? err.name : 'UnknownError';
+    console.error('Gemini analysis request failed', { model, errorName });
     return NextResponse.json(
-      { error: `تعذر إتمام التحليل اللحظي عبر Gemini: ${message}` },
+      {
+        status: 'upstream_error',
+        error: locale === 'ar'
+          ? 'تعذر إتمام التحليل عبر Gemini. تحقق من إعداد GEMINI_MODEL ومفتاح الخادم وحصة واجهة Gemini.'
+          : 'Gemini analysis failed. Verify GEMINI_MODEL, the server API key, and API quota.',
+      },
       { status: 502 }
     );
   }

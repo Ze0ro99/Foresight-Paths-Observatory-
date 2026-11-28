@@ -3,19 +3,19 @@ import assert from 'node:assert/strict';
 import {
   analyzeThreatAndGenerateBundle,
   computeFeeEconomicsStrategies,
-  MICRO_SUBSCRIPTION_PI,
-  PI_MAINNET_BASE_FEE,
+  DEFAULT_PLAN_PRICE_PI,
 } from './pi-ecosystem-engine';
 
-test('computeFeeEconomicsStrategies quantifies 100x direct fee vs batch-settlement savings', () => {
+test('fee strategy catalogue makes no unsupported fixed-fee or savings claims', () => {
   const strategies = computeFeeEconomicsStrategies();
-  assert.equal(PI_MAINNET_BASE_FEE / MICRO_SUBSCRIPTION_PI, 100);
-  assert.equal(strategies[0].effectiveGasRatioPct, 99);
-  assert.ok(strategies.some((s) => s.id === 'x402-batch' && s.effectiveGasRatioPct <= 10));
-  assert.ok(strategies.some((s) => s.id === 'pirc2-allowance'));
+  assert.equal(DEFAULT_PLAN_PRICE_PI, 0.0001);
+  assert.ok(strategies.length >= 5);
+  assert.ok(strategies.every((strategy) => strategy.effectiveGasRatioPct === null));
+  assert.ok(strategies.some((strategy) => strategy.id === 'direct-onchain' && strategy.readinessStatusAr.includes('Testnet v1')));
+  assert.ok(strategies.some((strategy) => strategy.id === 'x402-batch' && strategy.readinessStatusAr.includes('غير مفعّل')));
 });
 
-test('analyzeThreatAndGenerateBundle generates valid MCP, SoloHost, and Soroban PiRC2 artifacts with PiRC-203 pricing', () => {
+test('scenario generator exports explicitly unverified MCP/Soroban scaffolds and a simulate-only Pi subscription spec', () => {
   const bundle = analyzeThreatAndGenerateBundle({
     title: 'PHP2Shell Critical Gateway Exploit',
     threatCategory: 'web_exploit',
@@ -31,15 +31,19 @@ test('analyzeThreatAndGenerateBundle generates valid MCP, SoloHost, and Soroban 
   assert.equal(bundle.oracleStatus, 'healthy');
   assert.ok(bundle.estimatedPiCost > 2000);
   assert.ok(bundle.precautionarySteps.length >= 3);
-  assert.ok(bundle.mcpAgentCode.includes('server.paidTool'));
-  assert.ok(bundle.mcpAgentCode.includes('withX402Client'));
+  assert.ok(bundle.mcpAgentCode.includes('READ-ONLY AGENT STARTER TEMPLATE'));
+  assert.ok(bundle.mcpAgentCode.includes('paymentSubmission: false'));
+  assert.ok(!bundle.mcpAgentCode.includes('createX402McpServer'));
   assert.ok(bundle.sorobanContractCode.includes('authorize_pirc2'));
-  assert.ok(bundle.sorobanContractCode.includes('trigger_pirc254_breaker'));
-  assert.ok(bundle.soloHostManifest.includes('solohost.pi.agent/v1'));
-  assert.ok(bundle.subscriptionSpecJson.includes('batch-settlement'));
+  assert.ok(bundle.soloHostManifest.includes('solohost.pi.agent-design/v1'));
+  assert.ok(bundle.subscriptionSpecJson.includes('Pi Native Subscription Contract v1'));
+  assert.ok(bundle.subscriptionSpecJson.includes('"submitModeEnabled": false'));
+  assert.ok(bundle.subscriptionSpecJson.includes('"priceIsIllustrative": true'));
+  assert.ok(bundle.subscriptionSpecJson.includes('"x402Integration": "not_implemented"'));
+  assert.ok(!bundle.subscriptionSpecJson.includes('batch-settlement'));
 });
 
-test('analyzeThreatAndGenerateBundle triggers spread_warning when PiRC-203 oracle spread exceeds 4.5%', () => {
+test('manual scenario spread produces a model warning without claiming a live oracle action', () => {
   const bundle = analyzeThreatAndGenerateBundle({
     title: 'Oracle Spread Shock',
     threatCategory: 'payment_liquidity',
@@ -53,4 +57,5 @@ test('analyzeThreatAndGenerateBundle triggers spread_warning when PiRC-203 oracl
 
   assert.equal(bundle.oracleStatus, 'spread_warning');
   assert.ok(bundle.sorobanContractCode.includes('circuit_halted: true'));
+  assert.ok(bundle.agentsMarkdown.includes('not a live quote'));
 });

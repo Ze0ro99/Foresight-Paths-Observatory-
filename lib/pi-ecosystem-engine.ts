@@ -7,14 +7,13 @@ import {
 } from './types';
 import { FEE_STRATEGIES_I18N, THREAT_PRESETS_I18N } from './i18n-data';
 
-export const PI_MAINNET_BASE_FEE = 0.01;
-export const MICRO_SUBSCRIPTION_PI = 0.0001;
+export const DEFAULT_PLAN_PRICE_PI = 0.0001; // Illustrative example only; actual Pi service pricing is registered in the Developer Portal.
 
 export interface FeeEconomicsStrategy {
   id: string;
   nameAr: string;
   nameEn: string;
-  effectiveGasRatioPct: number;
+  effectiveGasRatioPct: number | null;
   gasMultiplierLabel: string;
   readinessStatusAr: string;
   mechanismAr: string;
@@ -23,66 +22,58 @@ export interface FeeEconomicsStrategy {
 export function computeFeeEconomicsStrategies(
   locale: AppLocale = 'ar'
 ): FeeEconomicsStrategy[] {
-  const directGasMultiplier = Math.round(
-    PI_MAINNET_BASE_FEE / MICRO_SUBSCRIPTION_PI
-  ); // 100x
   const base: FeeEconomicsStrategy[] = [
     {
       id: 'direct-onchain',
-      nameAr: 'معاملة مباشرة شهرياً (غير مجدية اقتصادياً)',
-      nameEn: 'Direct Monthly On-Chain Tx',
-      effectiveGasRatioPct: 99,
-      gasMultiplierLabel: `${directGasMultiplier}× رسوم (${PI_MAINNET_BASE_FEE} Pi مقابل ${MICRO_SUBSCRIPTION_PI} Pi)`,
-      readinessStatusAr: 'مرفوضة هندسياً (99% استهلاك غاز)',
-      mechanismAr:
-        'تحصيل 0.0001 Pi بمعاملة شهرية منفردة يفرض رسم 0.01 Pi أي 100 ضعف الاشتراك.',
+      nameAr: 'اشتراكات Pi الأصلية v1',
+      nameEn: 'Native Pi Subscription v1',
+      effectiveGasRatioPct: null,
+      gasMultiplierLabel: 'لا توجد نسبة رسم شبكة ثابتة مؤكدة',
+      readinessStatusAr: 'Testnet v1 فقط · المحاكاة متاحة · يتطلب Service ID مسجلًا',
+      mechanismAr: 'استدعاء عقد الاشتراك الرسمي عبر Pi SDK في وضع simulate. التجديد الفعلي يتطلب استدعاء merchant process ولا توجد جدولة تلقائية في التطبيق.',
     },
     {
       id: 'x402-batch',
-      nameAr: '1. التسوية المجمعة عبر قسائم x402',
-      nameEn: 'x402 Off-Chain Batch Settlement',
-      effectiveGasRatioPct: 5,
-      gasMultiplierLabel: '1% – 10% عند التسوية عند عتبة 0.1–1 Pi',
-      readinessStatusAr: 'جاهز على Testnet / تكييف Soroban',
-      mechanismAr:
-        'توقيع قسائم دفع خارج السلسلة بقيمة 0.0001 Pi/طلب ثم تسويتها مجمعة في معاملة واحدة.',
+      nameAr: 'تسوية x402 المجمعة',
+      nameEn: 'x402 Batch Settlement',
+      effectiveGasRatioPct: null,
+      gasMultiplierLabel: 'غير مقاس · لا يوجد مسوّي متصل',
+      readinessStatusAr: 'غير مفعّل · لا يوجد مسوّي موثوق متصل',
+      mechanismAr: 'تصميم تكاملي مستقبلي فقط. لا يصدر التطبيق قسائم دفع ولا ينفذ تسوية x402 في هذه النسخة.',
     },
     {
       id: 'pirc2-allowance',
-      nameAr: '2. عقد الاشتراكات الذكي PiRC2 (سماحية ممتدة)',
-      nameEn: 'PiRC2 Soroban Allowance Contract',
-      effectiveGasRatioPct: 2,
-      gasMultiplierLabel: 'غاز مقصور على التفويض ودورة السحب',
-      readinessStatusAr: 'مواصفات Testnet منشورة (قيد التدقيق)',
-      mechanismAr:
-        'تفويض سماحية transfer_from في Soroban بأفق expiration ledger دون حجز الرصيد مقدماً.',
+      nameAr: 'تصميم Soroban المجتمعي',
+      nameEn: 'Community Soroban Design',
+      effectiveGasRatioPct: null,
+      gasMultiplierLabel: 'يتطلب بناءً وتدقيقًا وقياسًا على Testnet',
+      readinessStatusAr: 'هيكل تصميم فقط · غير منشور أو مدقق',
+      mechanismAr: 'هيكل عقد مجتمعي مستقل عن عقد اشتراكات Pi الأصلي. يتطلب بناءً واختبارات وتدقيقًا ونشرًا منفصلًا على Stellar Testnet.',
     },
     {
       id: 'prepaid-bundle',
-      nameAr: '3. الدفع المجمع المسبق عبر Pi.createPayment',
-      nameEn: 'Prepaid Pi SDK v2.0 Credit Bundle',
-      effectiveGasRatioPct: 10,
-      gasMultiplierLabel: '10% عند 0.1 Pi أو 1% عند 1 Pi',
-      readinessStatusAr: 'جاهز للإنتاج الفوري على Mainnet',
-      mechanismAr:
-        'شحن رصيد استهلاك 0.1 Pi عبر تدفق U2A الثلاثي يغطي مئات الدورات الشهرية الدقيقة.',
+      nameAr: 'رصيد مسبق عبر Pi Payments',
+      nameEn: 'Prepaid Pi Payments',
+      effectiveGasRatioPct: null,
+      gasMultiplierLabel: 'معطّل · لا يوجد تسعير رسوم',
+      readinessStatusAr: 'معطّل · لا رصيد مدفوع أو استحقاقات',
+      mechanismAr: 'لا يتم إنشاء رصيد مسبق أو منح نقاط/استحقاقات. يتطلب مسار دفع معتمدًا وسجل تسوية واستردادًا منفصلًا.',
     },
     {
       id: 'pi-ads-subsidy',
-      nameAr: '4. التغطية الإعلانية الاختيارية (Pi.Ads)',
-      nameEn: 'Rewarded Ads Verified Credit',
-      effectiveGasRatioPct: 0,
-      gasMultiplierLabel: '0% غاز عند تحقق mediator_ack_status',
-      readinessStatusAr: 'مدعوم رسمياً في Pi Developer Ad Network',
-      mechanismAr:
-        'تغطية التجديد الشهري 0.0001 Pi بمشاهدة إعلان مكافأة يتحقق منه الخادم عبر Pi API.',
+      nameAr: 'ائتمان الإعلانات المكافأة',
+      nameEn: 'Rewarded Ads Credit',
+      effectiveGasRatioPct: null,
+      gasMultiplierLabel: 'معطّل · لا يوجد callback موثوق',
+      readinessStatusAr: 'غير متصل · لا منح عبر الإعلانات',
+      mechanismAr: 'لا تُمنح أرصدة أو اشتراكات مقابل مشاهدة إعلان حتى يتوفر تحقق خادمي موثوق من مزود الإعلانات.',
     },
   ];
   if (locale === 'ar') return base;
   const tr = FEE_STRATEGIES_I18N[locale];
   return base.map((item) => {
     const entry = tr?.[item.id];
-    if (!entry) return item;
+    if (!entry) return { ...item, nameAr: item.nameEn };
     return {
       ...item,
       nameAr: entry.name,
@@ -95,40 +86,44 @@ export function computeFeeEconomicsStrategies(
 
 export const PIRC_STANDARDS_SEPARATION = [
   {
-    id: 'pirc2',
-    name: 'PiRC2: Subscription Contract API',
+    id: 'pi-native-subscriptions',
+    name: 'Pi Native Subscription Contract v1',
     classification: 'official' as const,
-    sourceRepo: 'PiNetwork/PiRC (رسمي)',
-    statusAr: 'منشور على Testnet وقيد التدقيق الأمني للنشر على Mainnet',
-    roleInAppAr:
-      'المحرك المرجعي لعقود الاشتراكات المتميزة، وإدارة سماحية transfer_from وexpiration_ledger دون قفل الأموال.',
+    sourceRepo: 'Pi Developer Documentation (Official)',
+    statusAr: 'موثق رسميًا ومتاح على Pi Testnet v1؛ لا يُعرض هنا كخدمة Mainnet',
+    roleInAppAr: 'التكامل الرسمي يستخدم Pi.SmartContract.Subscription. التطبيق يقرأ الخدمة ويحاكي subscribe على Testnet؛ التجديد يتطلب merchant process منفصلًا.',
+  },
+  {
+    id: 'pirc2',
+    name: 'PiRC2: Community Subscription / Allowance Proposal',
+    classification: 'community' as const,
+    sourceRepo: 'Ze0ro99/PiRC (مقترح مجتمعي)',
+    statusAr: 'تصميم مجتمعي مستقل؛ ليس معيارًا رسميًا منشورًا من Pi Core Team ولا بديلًا عن عقد Pi الأصلي',
+    roleInAppAr: 'هيكل تصميم لعقد Soroban مخصص. يتطلب تجميعًا واختبارات وتدقيقًا وموافقة منفصلة قبل أي نشر على Stellar Testnet.',
   },
   {
     id: 'pirc1',
-    name: 'PiRC1: Ecosystem Token Design',
-    classification: 'official' as const,
-    sourceRepo: 'PiNetwork/PiRC (رسمي)',
-    statusAr: 'إنفاذ مقاييس المنفعة الحقيقية وتكامل Launchpad / DEX',
-    roleInAppAr:
-      'قياس النشاط الموثق للمستخدمين (توثيق الإحداثيات، البث، تقارير المخاطر) لتأهيل التطبيق للسيولة الدائمة.',
+    name: 'PiRC1: Ecosystem Token Design Proposal',
+    classification: 'community' as const,
+    sourceRepo: 'Ze0ro99/PiRC (مقترح مجتمعي)',
+    statusAr: 'مقترح اقتصادي مجتمعي غير ملزم ولا يمثل سياسة رسمية من Pi Core Team',
+    roleInAppAr: 'نموذج لقياس المنفعة والنشاط الاقتصادي؛ لا يثبت أهلية Launchpad أو إدراج DEX أو قيمة صرف مضمونة.',
   },
   {
     id: 'seven-layer',
     name: '7-Layer Pinework Architecture',
     classification: 'community' as const,
     sourceRepo: 'Ze0ro99/PiRC (مقترح مجتمعي)',
-    statusAr: 'طبقة تنظيمية اختيارية وليست معياراً ملزماً من Pi Core Team',
-    roleInAppAr:
-      'فصل الكود والوثائق إلى 7 طبقات: البنية التحتية، البروتوكول، العقود، الخدمة، التشغيل البيني، التطبيق، والحوكمة.',
+    statusAr: 'طبقة تنظيمية اختيارية وليست معيارًا ملزمًا من Pi Core Team',
+    roleInAppAr: 'فصل الكود والوثائق إلى 7 طبقات: البنية التحتية، البروتوكول، العقود، الخدمة، التشغيل البيني، التطبيق، والحوكمة.',
   },
   {
     id: 'ze0ro-proposals',
     name: 'PiRC-202 / 203 / 206 / 208 / 254',
     classification: 'community' as const,
     sourceRepo: 'Ze0ro99/PiRC (مقترحات مجتمعية)',
-    statusAr: 'مفاهيم إلهامية مفصولة برمجياً عن مواصفات PiRC الرسمية',
-    roleInAppAr:
-      'تدرج الصلاحيات (202)، أوراكل التسعير (203)، مراقبة الصحة التشغيلية (206)، تدقيق AI (208)، وقواطع الدائرة (254).',
+    statusAr: 'مفاهيم إلهامية مفصولة برمجياً عن مواصفات Pi الرسمية',
+    roleInAppAr: 'تدرج الصلاحيات (202)، أوراكل التسعير (203)، مراقبة الصحة التشغيلية (206)، تدقيق AI (208)، وقواطع الدائرة (254).',
   },
   {
     id: 'economic-contract',
@@ -136,8 +131,7 @@ export const PIRC_STANDARDS_SEPARATION = [
     classification: 'community' as const,
     sourceRepo: 'Ze0ro99/project-unity-sphere',
     statusAr: 'ضوابط أمان تنفيذية للخادم',
-    roleInAppAr:
-      'رفض الأسعار أو الأهلية الواردة من المتصفح، منع مفاتيح التوقيع بالواجهة، وفرض Idempotency والتحقق البعدي.',
+    roleInAppAr: 'رفض الأسعار أو الأهلية الواردة من المتصفح، منع مفاتيح التوقيع بالواجهة، وفرض Idempotency والتحقق البعدي.',
   },
 ];
 
@@ -153,43 +147,43 @@ export const THREAT_PRESETS: Record<
     labelAr: 'اختناق سلاسل الإمداد والممرات البحرية',
     defaultTitleAr: 'اضطراب تخليص الموانئ وتعطل مسارات الطاقة الرقمية',
     mitigationsAr: [
-      'تفعيل بوابات توجيه متعددة السحب وعزل أنظمة SCADA غير الأساسية تلقائياً.',
-      'نشر عقد ضمان Soroban/PiRC2 لتجميد العقود الآجلة تلقائياً عند تجاوز التأخير 40%.',
-      'تشغيل وكيل رصد SoloHost محلي على العقد لمراقبة تغيرات BGP والموانئ.',
+      'محاكاة مسارات توجيه بديلة للموانئ والطاقة؛ أي تغيير فعلي في التوجيه يتطلب موافقة مالك النظام.',
+      'تقييم أثر التأخير على العقود والالتزامات، ثم إعداد مقترح تعاقدي منفصل لمراجعته؛ لا يتم تجميد أو تعديل أي عقد تلقائيًا.',
+      'مراقبة مصادر BGP والموانئ العامة وتوثيق المصدر والتوقيت؛ لا تُجرى عمليات مسح أو تغييرات خارجية.',
     ],
   },
   web_exploit: {
     labelAr: 'استغلال ثغرات الويب الحرجة (PHP2Shell / CVE)',
     defaultTitleAr: 'موجة استغلال مؤتمتة لثغرات الخوادم ضمن توجيه BOD 22-01',
     mitigationsAr: [
-      'تفعيل قاطع الدائرة PiRC-254 لحظر استدعاءات MCP غير الموقعة فور رصد شذوذ الحزم.',
-      'عزل مفاتيح توقيع Pi Wallet خلف خادم التحقق مع فرض Idempotency Keys.',
-      'ترقيع الخوادم الحرجة خلال 24 ساعة وتوثيق بصمة السجلات بـ SHA-256.',
+      'مطابقة مؤشرات الهجوم مع الأصول المملوكة، ثم اقتراح قاعدة WAF/تحديث؛ يتطلب الحظر موافقة مسؤول النظام.',
+      'إبقاء مفاتيح التوقيع خارج المتصفح واستخدام مفاتيح idempotency والتحقق بعد التنفيذ في الأنظمة التي يملكها العميل.',
+      'مطابقة الثغرات مع CISA KEV/NVD وتحديد أولوية الترقيع؛ يعتمد توقيت التحديث على مالك الأصل واختبار التراجع.',
     ],
   },
   ai_ransomware: {
     labelAr: 'هجمات الفدية المسرّعة بالذكاء الاصطناعي (SafePay)',
     defaultTitleAr: 'توسع هجمات التشفير المؤتمتة ضد مؤسسات البنية التحتية',
     mitigationsAr: [
-      'تشغيل نسخ احتياطية معزولة (Immutable Air-Gap) مرتبطة بإنذارات تحالف CISA.',
-      'فصل مستودع الوكلاء داخل بيئة SoloHost المعزولة مع حدود صلاحية PiRC-202.',
-      'إلزام المصادقة الثنائية الموثقة بـ Pi KYC لجميع إجراءات الاسترداد الحرجة.',
+      'الاحتفاظ بنسخ احتياطية غير قابلة للتغيير ومعزولة واختبار الاستعادة دوريًا.',
+      'عزل الأصول المتأثرة عبر EDR/SOAR معتمد بعد موافقة مسؤول الجهة المالكة، مع تسجيل أثر التغيير.',
+      'فرض MFA أو مفاتيح أمان للأدوار الحساسة والتحقق المزدوج قبل استعادة الخدمات.',
     ],
   },
   payment_liquidity: {
     labelAr: 'اختلال سيولة المدفوعات وتباعد الأوراكل (PI/USD)',
     defaultTitleAr: 'اتساع الفارق السعري وتعطل تسويات الدفع الدقيقة (x402)',
     mitigationsAr: [
-      'تفعيل وضع الفشل الآمن في أوراكل PiRC-203 عند تجاوز الفارق السعري 4.5%.',
-      'ترحيل المدفوعات الدقيقة 0.0001 Pi إلى قسائم التجميع x402 batch-settlement.',
-      'تحديد سقف ميزانية أقصى في سماحية Soroban transfer_from لحماية المشتركين.',
+      'مقارنة مصادر أسعار مستقلة وإيقاف التوصيات عند اتساع الاختلاف؛ هذا حد تحليلي وليس قاطع معاملات مباشرًا.',
+      'نمذجة بدائل التسوية فقط؛ يظل التحصيل معطّلًا حتى التحقق من مزود الدفع والرسوم والموافقات.',
+      'تحديد سقف ميزانية يوافق عليه المستخدم؛ وأي عقد Soroban مخصص يحتاج تدقيقًا ونشرًا واختبارات مستقلة.',
     ],
   },
 };
 
 /**
- * Computes composite risk %, PiRC-203 oracle hedge price in Pi, precautionary steps,
- * and exports genuine MCP Server, SoloHost Manifest, Soroban/PiRC2 Rust contract, and x402 Spec.
+ * Computes a heuristic scenario-risk score and a budget-equivalent Pi estimate from manual assumptions.
+ * Exported MCP/Soroban files are unverified design scaffolds, not deployable or audited integrations.
  */
 export function analyzeThreatAndGenerateBundle(
   input: RiskScenarioInput,
@@ -199,7 +193,7 @@ export function analyzeThreatAndGenerateBundle(
   const safeProb = Math.max(1, Math.min(100, input.probabilityPct));
   const safeDep = Math.max(1, Math.min(10, input.dependencyFactor));
   const safeUsd = Math.max(10, input.estimatedUsdCost);
-  const safePiPrice = Math.max(0.01, input.piUsdMedianPrice);
+  const safePiPrice = Number.isFinite(input.piUsdMedianPrice) && input.piUsdMedianPrice > 0 ? input.piUsdMedianPrice : 0.0000001;
 
   // Weighted composite risk equation normalized to 1..99%
   const rawScore =
@@ -211,7 +205,7 @@ export function analyzeThreatAndGenerateBundle(
   const oracleStatus: GeneratedSolutionBundle['oracleStatus'] =
     input.oracleSpreadPct > 4.5 ? 'spread_warning' : 'healthy';
 
-  // Cost hedged in Pi using PiRC-203 median Pi/USD oracle + risk contingency factor
+  // Scenario budget conversion only. This is not a hedge, live quote, or oracle price.
   const contingencyFactor = 1 + riskScorePct / 250;
   const estimatedPiCost = Number(
     ((safeUsd * contingencyFactor) / safePiPrice).toFixed(2)
@@ -227,48 +221,48 @@ export function analyzeThreatAndGenerateBundle(
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_|_$/g, '') || `${input.threatCategory}_guard`;
 
-  const mcpAgentCode = `// MCP Server + x402 V2 Paid Tool (Generated for ${input.title})
-import { createX402McpServer, withX402Client } from "@x402/mcp-pi";
-
-export const server = createX402McpServer({
-  name: "${slug}_defense_agent",
-  network: "pi:testnet",
-  facilitatorUrl: "https://api.minepi.com/x402/facilitator",
-  circuitBreakerMaxRiskPct: ${riskScorePct},
-});
-
-server.paidTool(
-  "mitigate_${input.threatCategory}",
-  {
-    description: "Executes precautionary containment for: ${input.title.replace(/"/g, "'")}",
-    pricePi: "0.0001",
-    scheme: "batch-settlement",
-    oracleSpreadGuardPct: ${input.oracleSpreadPct.toFixed(2)},
+  const mcpAgentCode = `// READ-ONLY AGENT STARTER TEMPLATE; not a connected MCP server.
+// No API keys, payment adapter, wallet signer, or external write connector is configured.
+export const agentDefinition = {
+  id: ${JSON.stringify(slug)},
+  title: ${JSON.stringify(input.title)},
+  environment: 'Pi Testnet (public reads only)',
+  capabilities: ['read_public_signals', 'correlate_evidence', 'draft_defensive_recommendations'],
+  permissions: {
+    externalWrites: false,
+    walletSigning: false,
+    paymentSubmission: false,
+    thirdPartySystemChanges: false,
   },
-  async ({ targetNode, digestSha256 }) => {
-    return {
-      status: "${oracleStatus === 'spread_warning' ? 'safe_fallback' : 'armed'}",
-      riskScorePct: ${riskScorePct},
-      estimatedHedgePi: ${estimatedPiCost},
-      targetNode,
-      verifiedDigest: digestSha256,
-    };
-  }
-);
+  integrations: { mcpServer: 'not_connected', x402: 'not_implemented', piSubscriptionServiceIdRequired: true },
+  scenario: {
+    riskScorePct: ${riskScorePct},
+    riskLevel: ${JSON.stringify(riskLevel)},
+    scenarioBudgetEquivalentPi: ${estimatedPiCost},
+    assumedPiUsdPrice: ${safePiPrice},
+  },
+  recommendations: ${JSON.stringify(presetMitigations)},
+};
 
-// Exported agent wrapper for downstream Pi applications
-export const clientWrapper = withX402Client({
-  maxPerCallPi: "0.01",
-  monthlyCapPi: "0.10",
-});
+export async function runAgent() {
+  return {
+    status: 'simulation_only',
+    executedActions: 0,
+    externalWrites: 0,
+    paymentSubmissions: 0,
+    walletSignatures: 0,
+    recommendations: agentDefinition.recommendations,
+  };
+};
 `;
 
   const agentsMarkdown = `# agents.md — ${input.title}
 - Agent ID: \`${slug}_defense_agent\`
 - Threat Category: \`${input.threatCategory}\`
 - Composite Risk Score: **${riskScorePct}%** (${riskLevel})
-- PiRC-203 Oracle Hedge Budget: **${estimatedPiCost} Pi** (@ $${safePiPrice.toFixed(4)}/Pi)
-- Payment Protocol: x402 V2 (\`/x402/mcp\`) + PiRC2 Subscription Allowance
+- Scenario budget equivalent: **${estimatedPiCost} Pi** using the manually entered price assumption of ${safePiPrice.toFixed(4)}/Pi (not a live quote)
+- Plan price example: ${DEFAULT_PLAN_PRICE_PI} Pi; configure the actual service price in Pi Developer Portal
+- Pi native subscription: Testnet v1 only; x402 is not connected
 
 ## Precautionary Actions
 ${presetMitigations.map((m, i) => `${i + 1}. ${m}`).join('\n')}
@@ -276,25 +270,32 @@ ${presetMitigations.map((m, i) => `${i + 1}. ${m}`).join('\n')}
 
   const soloHostManifest = JSON.stringify(
     {
-      schema: 'solohost.pi.agent/v1',
+      schema: 'solohost.pi.agent-design/v1',
       agentId: `${slug}_solohost`,
       title: input.title,
-      runtime: 'node20-isolated',
-      privacyMode: 'local_node_inference',
-      mcpEndpoint: '/x402/mcp',
-      pirc203OraclePriceUsd: safePiPrice,
-      pirc254CircuitBreaker: {
+      designStatus: 'unverified_scaffold',
+      executionMode: 'manual_review_only',
+      deployed: false,
+      runtime: 'node20-isolated (proposed)',
+      privacyMode: 'local_node_inference (proposed; not enforced here)',
+      mcpEndpoint: null,
+      assumedPiUsdPrice: safePiPrice,
+      scenarioSpreadThreshold: {
         enabled: true,
-        haltOnOracleSpreadAbovePct: 4.5,
-        currentSpreadPct: input.oracleSpreadPct,
+        thresholdPct: 4.5,
+        inputSpreadPct: input.oracleSpreadPct,
+        liveOracleConnected: false,
       },
-      estimatedBudgetPi: estimatedPiCost,
+      scenarioBudgetEquivalentPi: estimatedPiCost,
     },
     null,
     2
   );
 
-  const sorobanContractCode = `// Soroban / PiRC2 Subscription + PiRC-254 Circuit Breaker Contract
+  const sorobanContractCode = `// COMMUNITY DESIGN SCAFFOLD ONLY. Not an official Pi contract or the native Pi Subscription v1 contract.
+// Requires compilation, tests, independent security audit, and separate Stellar Testnet deployment.
+// This application does not deploy, sign, or submit a live transaction.
+// Soroban / Community PiRC2 Subscription + Scenario Threshold
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
 
@@ -343,20 +344,24 @@ impl RiskDefenseSubscription {
 
   const subscriptionSpecJson = JSON.stringify(
     {
-      standard: 'PiRC2 + x402-V2',
+      standard: 'Pi Native Subscription Contract v1',
       planName: `${locale === 'ar' ? 'حماية' : 'Guard:'} ${input.title}`,
-      microTierMonthlyPi: MICRO_SUBSCRIPTION_PI,
-      premiumGeneratorPi: estimatedPiCost,
-      mainnetBaseFeePi: PI_MAINNET_BASE_FEE,
-      settlementStrategy: 'batch-settlement + PiRC2 transfer_from allowance',
-      x402PaymentRequiredHeader: {
-        x402Version: 2,
-        scheme: 'batch-settlement',
-        network: 'pi:testnet',
-        maxAmountRequired: String(MICRO_SUBSCRIPTION_PI),
-        resource: '/api/x402/mcp',
-        asset: 'PI',
-      },
+      examplePlanPricePi: DEFAULT_PLAN_PRICE_PI,
+      priceIsIllustrative: true,
+      serviceIdRequired: true,
+      serviceMustBeRegisteredInDeveloperPortal: true,
+      networkAvailability: 'Pi Testnet v1 only',
+      appExecutionMode: 'simulate',
+      sdkCall: 'Pi.SmartContract.Subscription.subscribe(..., { mode: "simulate" })',
+      submitModeEnabled: false,
+      entitlementGrantEnabled: false,
+      renewalProcessing: 'Merchant process call required; no automatic renewal worker is configured',
+      x402Integration: 'not_implemented',
+      customSorobanContract: 'separate community design; not the native Pi subscription contract',
+      networkFeeQuotePi: null,
+      piUsdAssumption: safePiPrice,
+      scenarioBudgetEquivalentPi: estimatedPiCost,
+      note: 'No live price feed, fee quote, transaction submission, or payment is performed by this specification.',
     },
     null,
     2
@@ -384,12 +389,12 @@ export const INITIAL_GOVERNANCE_PROPOSALS: GovernanceProposal[] = [
     riskScorePct: 81,
     pricePi: 0.0001,
     status: 'voting',
-    votesFor: 148,
-    votesAgainst: 11,
-    quorumRequired: 180,
+    votesFor: 0,
+    votesAgainst: 0,
+    quorumRequired: 1,
     summary:
-      'وكيل MCP محلي يطابق تنبيهات CISA BOD 22-01 مع قياسات BGP الحية ويصدر تنبيهات خضراء/حمراء موقعة.',
-    artifactSnippet: 'server.paidTool("mitigate_web_exploit", { pricePi: "0.0001", scheme: "batch-settlement" })',
+      'Sample proposal for the local UI preview only. No real participants, votes, CISA feed, or signed alerts are represented.',
+    artifactSnippet: 'Defensive, read-only monitoring design; no external action or payment is executed.',
   },
   {
     id: 'prop-02',
@@ -397,13 +402,13 @@ export const INITIAL_GOVERNANCE_PROPOSALS: GovernanceProposal[] = [
     kind: 'soroban_contract',
     riskScorePct: 68,
     pricePi: 0.1,
-    status: 'staged_rollout',
-    votesFor: 214,
-    votesAgainst: 9,
-    quorumRequired: 180,
+    status: 'voting',
+    votesFor: 0,
+    votesAgainst: 0,
+    quorumRequired: 1,
     summary:
-      'عقد Soroban يمنع استنزاف غاز 0.01 Pi على الاشتراكات الدقيقة ويوقف السحب عند اتساع الفارق السعري في الأوراكل.',
-    artifactSnippet: 'authorize_pirc2(subscriber, monthly_micro_pi: 1000, expiration_ledger)',
+      'Sample community proposal only. This custom Soroban design is not the native Pi subscription contract and has not been deployed or audited.',
+    artifactSnippet: 'Community contract design; compilation, audit, and Testnet deployment are not completed.',
   },
 ];
 

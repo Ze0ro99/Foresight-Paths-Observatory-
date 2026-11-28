@@ -6,6 +6,11 @@ import {
   classifyGdeltUpstreamError,
   parseGdeltResponse,
 } from '../lib/gdelt.mjs';
+import {
+  GDELT_FALLBACK_QUERY as EDGE_GDELT_FALLBACK_QUERY,
+  GDELT_PRIMARY_TIMEOUT_MS as EDGE_GDELT_PRIMARY_TIMEOUT_MS,
+  GDELT_FALLBACK_TIMEOUT_MS as EDGE_GDELT_FALLBACK_TIMEOUT_MS,
+} from '../supabase/functions/news-refresh/workbench.mjs';
 
 test('uses a five-minute shared refresh interval to avoid upstream request bursts', () => {
   assert.equal(GDELT_REFRESH_INTERVAL_SECONDS, 300);
@@ -15,6 +20,15 @@ test('groups the broad Boolean query and quotes multi-word terms', () => {
   assert.match(GDELT_BROAD_QUERY, /^\(.*\)$/);
   assert.match(GDELT_BROAD_QUERY, /"data breach"/);
   assert.match(GDELT_BROAD_QUERY, /"artificial intelligence"/);
+});
+
+test('Edge Function has a narrower GDELT fallback query and bounded timeouts', () => {
+  assert.ok(EDGE_GDELT_FALLBACK_QUERY.startsWith('(') && EDGE_GDELT_FALLBACK_QUERY.endsWith(')'));
+  assert.ok(EDGE_GDELT_FALLBACK_QUERY.length < GDELT_BROAD_QUERY.length);
+  assert.match(EDGE_GDELT_FALLBACK_QUERY, /cyberattack/);
+  assert.equal(EDGE_GDELT_PRIMARY_TIMEOUT_MS, 6000);
+  assert.equal(EDGE_GDELT_FALLBACK_TIMEOUT_MS, 4000);
+  assert.ok(EDGE_GDELT_PRIMARY_TIMEOUT_MS + EDGE_GDELT_FALLBACK_TIMEOUT_MS <= 10000);
 });
 
 test('parses a valid GDELT article-list response', () => {
