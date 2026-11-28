@@ -118,7 +118,7 @@ export default function PiAppStudioSignIn() {
         throw new Error('Pi OAuth is enabled only on its registered HTTPS domain. Open the production app URL in Pi Browser.');
       }
       if (!window.Pi) throw new Error('Pi SDK is not available. Open this app in Pi Browser and try again.');
-      await window.Pi.init({ version: '2.0' });
+      await initializePiSdk();
       const state = window.crypto.randomUUID();
       sessionStorage.setItem('pi_oauth_state', state);
       window.Pi.signIn({

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPiGatewayReadiness } from '@/lib/pi-readiness.mjs';
 import { getSupabaseServerHeaders, getSupabaseServerKeyKind } from '@/lib/supabase-server-headers.mjs';
-import { AUTHORITATIVE_PLAN_PRICES_PI, getRecoverableTestnetPayment } from '@/lib/pi-payment.mjs';
 import { openPiAppStudioSession, PI_APP_SESSION_COOKIE } from '@/lib/pi-appstudio-session.mjs';
+import { AUTHORITATIVE_PLAN_PRICES_PI, getRecoverableTestnetPayment } from '@/lib/pi-payment.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,7 +161,7 @@ function isPaymentReleaseEnabled() {
 
 async function recoverIncompletePayment(paymentId: string, expectedUserUid: string) {
   if (!isPaymentReleaseEnabled()) {
-    return unavailable('Pi Testnet payment recovery is disabled until the Testnet server key, private ledger credentials, and explicit release gates are configured.');
+    return unavailable('Pi Testnet payment recovery is disabled until the server key, private ledger credentials, and Preview release gates are configured.');
   }
   const apiKey = process.env.PI_API_KEY?.trim();
   if (!apiKey) return unavailable('Testnet Server API Key is not configured.');
@@ -297,6 +297,8 @@ export async function GET() {
     status: readiness.status,
     network: readiness.network,
     sandboxMode: readiness.sandboxMode,
+    clientSandboxMode: readiness.clientSandboxMode,
+    sandboxSettingsMatch: readiness.sandboxSettingsMatch,
     directTestnetEnabled: readiness.directTestnetEnabled,
     serverKeyConfigured: readiness.piApiKeyConfigured,
     ledgerConfigured: readiness.ledgerConfigured,
@@ -305,15 +307,18 @@ export async function GET() {
     entitlementDeliveryEnabled: false,
     paymentFlow: readiness.paymentEnabled
       ? 'testnet_server_verified_approval_and_completion_with_durable_intent_only'
-      : 'disabled_until_explicit_testnet_network_credentials_and_release_gates_pass',
+      : 'disabled_until_testnet_credentials_and_release_gates_pass',
     paymentEnabled: readiness.paymentEnabled,
     plans: AUTHORITATIVE_PLAN_PRICES_PI,
-    note: 'This gateway accepts Pi Testnet only. SDK Sandbox is an independent client setting; disabling Sandbox does not change the app network. Mainnet is not accepted and no paid entitlement is granted.',
+    note: 'Only the registered Pi Testnet app is accepted. SDK Sandbox is a separate development setting and must match the server setting. Mainnet is rejected and no paid entitlement is granted by this route.',
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req: NextRequest) {
-  if (!hasSameOrigin(req)) return NextResponse.json({ error: 'Same-origin Pi session required.' }, { status: 403 });
+  if (!hasSameOrigin(req)) {
+    return NextResponse.json({ error: 'Same-origin Pi session required.' }, { status: 403 });
+  }
+
   let body: {
     action?: 'auth_me' | 'payment_approve' | 'payment_complete' | 'payment_recover_incomplete' | 'rewarded_ad_verify';
     planId?: string;
@@ -339,7 +344,7 @@ export async function POST(req: NextRequest) {
     if (!body.paymentId || !/^[A-Za-z0-9_-]{6,160}$/.test(body.paymentId)) {
       return NextResponse.json({ error: 'A valid paymentId is required.' }, { status: 400 });
     }
-    if (!user) return unavailable('A verified App Studio Pi session is required for payment recovery.', 401);
+    if (!user?.uid) return unavailable('A verified App Studio Pi session is required for payment recovery.', 401);
     try {
       return await recoverIncompletePayment(body.paymentId, user.uid);
     } catch {
@@ -350,14 +355,14 @@ export async function POST(req: NextRequest) {
   if (action === 'payment_approve' || action === 'payment_complete') {
     if (!isPaymentReleaseEnabled()) {
       return unavailable(
-        'Pi Testnet payment processing is disabled until PI_NETWORK=Pi Testnet, PI_API_KEY, the private Supabase ledger, and explicit Preview release flags are configured.'
+        'Pi Testnet payment processing is disabled until PI_API_KEY, the private Supabase ledger, and explicit Preview release flags are configured.'
       );
     }
-    const apiKey = process.env.PI_API_KEY?.trim();
+    const apiKey = process.env.PI_API_KEY;
     if (!apiKey || apiKey === 'MY_PI_PLATFORM_SERVER_API_KEY') {
       return unavailable('Testnet Server API Key is not configured.');
     }
-    if (!user) return unavailable('A verified App Studio Pi session is required.', 401);
+    if (!user?.uid) return unavailable('A verified App Studio Pi session is required.', 401);
     if (!body.paymentId || !/^[A-Za-z0-9_-]{6,160}$/.test(body.paymentId)) {
       return NextResponse.json({ error: 'A valid paymentId is required.' }, { status: 400 });
     }
