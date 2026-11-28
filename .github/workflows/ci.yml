@@ -33,7 +33,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
       - name: Setup Deno
-      - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
