@@ -9,6 +9,7 @@ test('loads official Pi SDK before application hydration with a request nonce', 
   assert.match(layout, /https:\/\/sdk\.minepi\.com\/pi-sdk\.js/);
   assert.match(layout, /strategy="beforeInteractive"/);
   assert.match(layout, /nonce=\{nonce\}/);
+  assert.doesNotMatch(layout, /next\/font\/google/);
 });
 
 test('awaits Pi SDK v2 initialization without passing sandbox', async () => {
