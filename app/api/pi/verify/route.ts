@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPiGatewayReadiness } from '@/lib/pi-readiness.mjs';
+import { getSupabaseServerHeaders, getSupabaseServerKeyKind } from '@/lib/supabase-server-headers.mjs';
 import { openPiAppStudioSession, PI_APP_SESSION_COOKIE } from '@/lib/pi-appstudio-session.mjs';
 import { AUTHORITATIVE_PLAN_PRICES_PI, getRecoverableTestnetPayment } from '@/lib/pi-payment.mjs';
 
@@ -70,11 +71,12 @@ function hasSameOrigin(req: NextRequest) {
 async function ledgerRpc<T>(name: string, body: Record<string, unknown>): Promise<T | null> {
   const { url, key } = getSupabaseConfig();
   if (!url || !key || key === 'YOUR_SUPABASE_SERVICE_ROLE_KEY') return null;
+  const keyKind = getSupabaseServerKeyKind(key);
+  if (keyKind !== 'secret_key' && keyKind !== 'legacy_service_role_jwt') return null;
   const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
-      apikey: key,
-      Authorization: 'Bearer ' + key,
+      ...getSupabaseServerHeaders(key),
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },

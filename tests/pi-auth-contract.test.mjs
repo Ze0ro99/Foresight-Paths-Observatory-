@@ -12,11 +12,12 @@ test('loads official Pi SDK in the document head before application hydration', 
   assert.match(layout, /nonce=\{nonce\}/);
 });
 
-test('awaits Pi SDK v2 initialization without passing sandbox', async () => {
+test('awaits Pi SDK v2 initialization with the configured SDK Sandbox mode', async () => {
   const sdk = await read('../lib/pi-sdk-client.ts');
   assert.match(sdk, /await initialization/);
-  assert.match(sdk, /init\(\{ version: '2\.0' \}\)/);
-  assert.doesNotMatch(sdk, /sandbox/i);
+  assert.match(sdk, /init\(\{ version: '2\.0', sandbox \}\)/);
+  assert.match(sdk, /NEXT_PUBLIC_PI_SANDBOX_MODE === 'true'/);
+  assert.match(sdk, /__foresightPiSdkSandbox/);
 });
 
 test('server Pi verification trusts App Studio session and never calls /v2/me', async () => {

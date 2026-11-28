@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getPiGatewayReadiness } from '../lib/pi-readiness.mjs';
+import { getSupabaseServerKeyKind, getSupabaseServerHeaders } from '../lib/supabase-server-headers.mjs';
 
 const configured = {
   PI_API_KEY: 'testnet-server-key',
   NEXT_PUBLIC_SUPABASE_URL: 'https://project.supabase.co',
-  SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret',
+  SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_test_only_value',
   PI_NETWORK: 'Pi Testnet',
   PI_SANDBOX_MODE: 'true',
   NEXT_PUBLIC_PI_SANDBOX_MODE: 'true',
@@ -101,4 +102,28 @@ test('a missing payment-intent ledger flag keeps payments disabled', () => {
   assert.equal(result.paymentEnabled, false);
   assert.equal(result.status, 'payments_disabled_pending_release_gates');
   assert.ok(result.missingRequirements.includes('PI_PAYMENT_INTENT_LEDGER_READY=true'));
+});
+
+
+test('Supabase private ledger accepts only elevated server key formats', () => {
+  assert.equal(getSupabaseServerKeyKind('sb_secret_test_only_value'), 'secret_key');
+  assert.equal(getSupabaseServerKeyKind('sb_publishable_public_key'), 'publishable_key');
+  assert.equal(getSupabaseServerKeyKind(''), 'missing');
+  assert.throws(() => getSupabaseServerHeaders('sb_publishable_public_key'));
+  assert.deepEqual(getSupabaseServerHeaders('sb_secret_test_only_value'), {
+    apikey: 'sb_secret_test_only_value',
+  });
+});
+
+test('publishable and unknown Supabase keys never configure the private Pi ledger', () => {
+  for (const key of ['sb_publishable_public_key', 'not-a-server-key', '']) {
+    const result = getPiGatewayReadiness({
+      ...configured,
+      SUPABASE_SERVICE_ROLE_KEY: key,
+    });
+    assert.equal(result.supabaseServiceRoleKeyConfigured, false);
+    assert.equal(result.ledgerConfigured, false);
+    assert.equal(result.paymentEnabled, false);
+    assert.ok(result.missingRequirements.includes('SUPABASE_SERVICE_ROLE_KEY'));
+  }
 });
