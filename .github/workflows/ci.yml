@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, feat/v1-testnet-direct-mode-rebased, feat/agent-operations-workbench-testnet]
+    branches: [main, feat/v1-testnet-direct-mode-rebased, feat/agent-operations-workbench-testnet, feat/pi-appstudio-auth-validation]
   push:
     branches: [main]
 
@@ -32,6 +32,7 @@ jobs:
         run: npm test
       - name: Type check
         run: npx tsc --noEmit
+      - name: Setup Deno
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
