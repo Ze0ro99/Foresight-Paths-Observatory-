@@ -37,9 +37,9 @@ This is an engineering-to-documentation comparison. It is not Pi Core Team appro
 
 - Unit tests cover empty/whitespace/placeholder credentials, Sandbox release gates, Testnet payment recovery validation, app/network/direction/plan/amount checks, and cancellation/txid validation.
 - GitHub Actions and Vercel Preview for the updated head must complete before this branch's code changes can be considered build-verified.
-- Live Pi Browser authentication, actual Pi Sandbox payment approval/completion, and interrupted-payment recovery remain unverified until `PI_API_KEY` is configured and a Testnet app session is tested. The last successful Preview smoke test confirmed the private Supabase ledger credential was available.
-- Latest Preview runtime verification reports `PI_API_KEY` absent (`awaiting_server_key`). The earlier non-decrypted sensitive-variable listing does not reveal the Supabase key value, but runtime checks confirmed the private ledger was configured.
-- `SUPABASE_SERVICE_ROLE_KEY` is a sensitive Preview variable. Its value is not returned by non-decrypted listings; the last successful Preview runtime check reported `ledgerConfigured: true`, and USGS/NASA ingestion persisted 8 + 6 records, confirming the server-only credential path was working on that deployed commit.
+- Live Pi Browser authentication, actual Testnet payment approval/completion, and interrupted-payment recovery remain unverified until `PI_API_KEY` is configured and a Testnet app session is tested. Payment release flags remain false.
+- The latest PR #15 head is awaiting its exact-head GitHub Actions run. Vercel currently reports a build-rate-limit condition for this feature branch, so no current-head Preview is available for this change.
+- A previous Preview on the shared Vercel project detected `SUPABASE_SERVICE_ROLE_KEY` as `publishable_key`, not an elevated server key. Vercel-side private writes must remain disabled until an elevated `sb_secret_...` key or legacy `service_role` JWT is configured for `foresight-paths-dev`. The `agent-workbench` and `news-refresh` Edge Functions use Supabase's platform-injected `SUPABASE_SECRET_KEYS` within the Supabase runtime.
 - The Supabase URL and publishable key are configured for the isolated `foresight-paths-dev` database.
 
 ## Required owner setup
@@ -47,8 +47,8 @@ This is an engineering-to-documentation comparison. It is not Pi Core Team appro
 In Vercel Project Settings → Environment Variables, scoped only to Preview and branch `fix/ci-clean-base`:
 
 1. Set the actual Pi Testnet Server API Key as a sensitive server-only variable named `PI_API_KEY`.
-2. Preserve the existing sensitive `SUPABASE_SERVICE_ROLE_KEY` value for the isolated `foresight-paths-dev` project; do not replace it unless an intentional credential rotation is required.
-3. Redeploy Preview after both values are saved.
+2. For Vercel-side private RPCs, replace the current publishable key incorrectly stored in `SUPABASE_SERVICE_ROLE_KEY` with an elevated `sb_secret_...` key or legacy JWT whose role is `service_role`, from the same `foresight-paths-dev` project. Do not use the publishable or anon key.
+3. Redeploy Preview after correcting the key and wait for an exact-head READY deployment; if Vercel returns `build-rate-limit`, retain the last known READY build and do not treat it as evidence for the new commit.
 4. Open the deployed app in Pi Browser using the registered Testnet application; test login, a small Sandbox U2A payment, cancellation, callback retry, and incomplete-payment recovery. Verify the Pi payment record and private intent state before considering the flow passed.
 
 Never put either secret in chat, source control, the browser bundle, or a `NEXT_PUBLIC_` variable.

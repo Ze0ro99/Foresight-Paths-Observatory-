@@ -1,0 +1,7 @@
+project_id = "mlrbbnjoczpfmbgewgrm"
+
+[functions.agent-workbench]
+verify_jwt = false
+
+[functions.news-refresh]
+verify_jwt = false

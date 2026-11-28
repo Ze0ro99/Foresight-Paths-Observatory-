@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import PiSandboxPaymentPanel from './PiSandboxPaymentPanel';
-
 type Overview = {
   status: string;
   project?: string;
@@ -72,16 +70,17 @@ export default function TestnetReadinessPanel({ locale }: { locale: string }) {
 
   return (
     <section
-      aria-label={ar ? 'جاهزية شبكة الاختبار' : 'Testnet readiness'}
+      id="network-governance"
+      aria-label={ar ? 'بيانات الشبكة والحوكمة' : 'Network telemetry and governance status'}
       className="mx-4 my-4 rounded-xl border border-emerald-400/15 bg-[#0C111B] p-4 md:mx-6"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-bold text-white">
-            {ar ? 'لوحة بيانات المنظومة وPi Testnet' : 'Platform data & Pi Testnet'}
+            {ar ? 'الشبكة والمنظومة وPi Testnet' : 'Network & ecosystem telemetry'}
           </h2>
           <p className="mt-1 text-[11px] text-white/50">
-            {ar ? 'اتصال قراءة فقط · تحديث كل دقيقة' : 'Read-only connectivity · refreshes every minute'}
+            {ar ? 'بيانات قراءة فقط · لا توجد عمليات تصويت أو معاملات مفعّلة' : 'Read-only telemetry · governance voting and transactions are not enabled'}
           </p>
         </div>
         <button
@@ -162,8 +161,8 @@ export default function TestnetReadinessPanel({ locale }: { locale: string }) {
         </div>
         <p className="mt-2 text-[10px] leading-relaxed text-white/40">
           {ar
-            ? 'قواعد البيانات المعروضة للقراءة العامة فقط. السجلات المالية خاصة، وواجهة الرسوم تقرأ Testnet ولا تنشئ معاملات أو توقعها. القوالب المعروضة نماذج أولية وليست وكلاء منفذين.'
-            : 'Displayed database records are public read-only. Financial records are private; fee telemetry reads Testnet and never creates or signs transactions. Listed templates are prototypes, not executing agents.'}
+            ? 'البيانات العامة للقراءة فقط والسجلات المالية خاصة. قراءة الرسوم من Testnet لا تنشئ معاملات ولا توقعها. التصويت والاعتماد الإداري غير مفعّلين هنا، والقوالب نماذج أولية وليست وكلاء منفذين.'
+            : 'Public data is read-only and financial records are private. Testnet fee telemetry never creates or signs transactions. Voting and administrative approval are not enabled here; listed templates are prototypes, not executing agents.'}
         </p>
       </div>
     </section>

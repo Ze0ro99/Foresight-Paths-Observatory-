@@ -366,10 +366,9 @@ export function enrichGlobalSignal(raw: {
     piResonanceIndex,
     nearestEncryptedId: nearestNode.id,
     distanceToEncryptedKm: Math.round(minKm),
-    epistemicTier:
-      raw.source === 'USGS_Seismic' || raw.source === 'NASA_EONET'
-        ? 'documented'
-        : 'plausible',
+    // The source event may be documented, but this derived Gematria/Pi/map overlay is symbolic,
+    // not evidence of causation, prediction, or a verified relationship to the event.
+    epistemicTier: 'symbolic',
   };
 }
 

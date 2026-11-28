@@ -66,6 +66,7 @@ export default function LiveNewsPanel({ locale }: { locale: string }) {
 
   return (
     <section
+      id="global-news"
       aria-label={ar ? 'الأخبار العالمية' : 'Global news'}
       className="mx-4 my-4 rounded-xl border border-cyan-400/15 bg-[#0C111B] p-4 md:mx-6"
     >

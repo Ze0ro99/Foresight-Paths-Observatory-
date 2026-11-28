@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPiGatewayReadiness } from '@/lib/pi-readiness.mjs';
+import { getSupabaseServerHeaders, getSupabaseServerKeyKind } from '@/lib/supabase-server-headers.mjs';
 import { openPiAppStudioSession, PI_APP_SESSION_COOKIE } from '@/lib/pi-appstudio-session.mjs';
 import { AUTHORITATIVE_PLAN_PRICES_PI, getRecoverableTestnetPayment } from '@/lib/pi-payment.mjs';
 
@@ -70,11 +71,12 @@ function hasSameOrigin(req: NextRequest) {
 async function ledgerRpc<T>(name: string, body: Record<string, unknown>): Promise<T | null> {
   const { url, key } = getSupabaseConfig();
   if (!url || !key || key === 'YOUR_SUPABASE_SERVICE_ROLE_KEY') return null;
+  const keyKind = getSupabaseServerKeyKind(key);
+  if (keyKind !== 'secret_key' && keyKind !== 'legacy_service_role_jwt') return null;
   const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {
-      apikey: key,
-      Authorization: 'Bearer ' + key,
+      ...getSupabaseServerHeaders(key),
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
@@ -293,7 +295,11 @@ export async function GET() {
   return NextResponse.json({
     service: 'Pi verification gateway',
     status: readiness.status,
+    network: readiness.network,
     sandboxMode: readiness.sandboxMode,
+    clientSandboxMode: readiness.clientSandboxMode,
+    sandboxSettingsMatch: readiness.sandboxSettingsMatch,
+    directTestnetEnabled: readiness.directTestnetEnabled,
     serverKeyConfigured: readiness.piApiKeyConfigured,
     ledgerConfigured: readiness.ledgerConfigured,
     paymentIntentLedgerReady: readiness.paymentIntentLedgerReady,
@@ -304,7 +310,7 @@ export async function GET() {
       : 'disabled_until_testnet_credentials_and_release_gates_pass',
     paymentEnabled: readiness.paymentEnabled,
     plans: AUTHORITATIVE_PLAN_PRICES_PI,
-    note: 'Only Testnet/Sandbox is accepted by this gateway. A successful settlement is persisted, but no paid entitlement is granted by this route.',
+    note: 'Only the registered Pi Testnet app is accepted. SDK Sandbox is a separate development setting and must match the server setting. Mainnet is rejected and no paid entitlement is granted by this route.',
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 

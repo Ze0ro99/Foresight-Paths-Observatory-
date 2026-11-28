@@ -40,7 +40,13 @@ import ScenarioDetailDrawer from './ScenarioDetailDrawer';
 import BackendMechanicsModal, { BackendTab } from './BackendMechanicsModal';
 import AddEventModal from './AddEventModal';
 import LiveNewsPanel from './LiveNewsPanel';
+import CisaKevPanel from './CisaKevPanel';
 import TestnetReadinessPanel from './TestnetReadinessPanel';
+import LinkScannerPanel from './LinkScannerPanel';
+import AgentMarketplacePanel from './AgentMarketplacePanel';
+import GatewayNavigation from './GatewayNavigation';
+import ProjectEconomicsPanel from './ProjectEconomicsPanel';
+import { getMapPresentation } from '@/lib/presentation-mode.mjs';
 
 export default function ResearchWorkspace() {
   const [events, setEvents] = useState<LiveEvent[]>(() =>
@@ -52,6 +58,7 @@ export default function ResearchWorkspace() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBackendOpen, setIsBackendOpen] = useState(false);
+  const [isProMode, setIsProMode] = useState(false);
   const [backendTab, setBackendTab] = useState<BackendTab>('semiotics');
   const [isAnalyzingAi, setIsAnalyzingAi] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -205,6 +212,15 @@ export default function ResearchWorkspace() {
   const geodesicArcs = useMemo(
     () => computeGeodesicArcs(localizedEvents, selectedEventId),
     [localizedEvents, selectedEventId]
+  );
+
+  const mapPresentation = useMemo(
+    () => getMapPresentation(isProMode ? 'pro' : 'simple', {
+      events: localizedEvents,
+      forecasts,
+      geodesicArcs,
+    }),
+    [isProMode, localizedEvents, forecasts, geodesicArcs]
   );
 
   const platformMatrix = useMemo(
@@ -591,9 +607,17 @@ export default function ResearchWorkspace() {
         onChangeLocale={setLocale}
         probabilities={probabilities}
         onResetSelection={() => setSelectedItem(null)}
-        onOpenBackendMechanics={() => setIsBackendOpen(true)}
+        isProMode={isProMode}
+        onToggleProMode={() => {
+          setIsProMode((value) => !value);
+          setIsStreaming(false);
+          setSelectedItem(null);
+          setIsAddModalOpen(false);
+          setIsBackendOpen(false);
+        }}
         onOpenAddEvent={() => setIsAddModalOpen(true)}
       />
+      <GatewayNavigation locale={locale} />
 
       {senseCoverageNote && (
         <section
@@ -614,7 +638,46 @@ export default function ResearchWorkspace() {
         </section>
       )}
 
+      {/* Primary Experience: Full-Screen Interactive World Map */}
+      <main id="global-intelligence">
+        <FullScreenMapCanvas
+          locale={locale}
+          isProMode={isProMode}
+          events={mapPresentation.events}
+          forecasts={mapPresentation.forecasts}
+          geodesicArcs={mapPresentation.geodesicArcs}
+          globalSignals={globalSignals}
+          lastSenseUtc={lastSenseUtc}
+          isSensingNow={isSensingNow}
+          autoSenseEnabled={autoSenseEnabled}
+          onToggleAutoSense={() => setAutoSenseEnabled((v) => !v)}
+          onSenseNow={() => void handleSenseNow()}
+          onOpenCloudAgents={() => {
+            setIsProMode(true);
+            setBackendTab('cloud_agent');
+            setIsBackendOpen(true);
+          }}
+          qClockMinuteTick={qClockMinuteTick}
+          selectedItem={selectedItem}
+          onSelectItem={setSelectedItem}
+          isStreaming={effectiveStreaming}
+          onToggleStream={() => {
+            if (remainingSeedEvents.length === 0) return;
+            setIsStreaming((v) => !v);
+          }}
+          onStepForward={handleStepForward}
+          onResetTimeline={handleResetTimeline}
+          onSimulateAiEvent={handleSimulateAiEvent}
+          isSimulatingAi={isAnalyzingAi}
+          hasMoreSeedEvents={remainingSeedEvents.length > 0}
+        />
+      </main>
+
       <LiveNewsPanel locale={locale} />
+      <CisaKevPanel locale={locale} />
+      <ProjectEconomicsPanel locale={locale} />
+      <LinkScannerPanel locale={locale} />
+      <AgentMarketplacePanel locale={locale} />
       <TestnetReadinessPanel locale={locale} />
 
       {apiError && (
@@ -637,38 +700,7 @@ export default function ResearchWorkspace() {
         </div>
       )}
 
-      {/* Primary Experience: Full-Screen Interactive World Map */}
-      <main>
-        <FullScreenMapCanvas
-          locale={locale}
-          events={localizedEvents}
-          forecasts={forecasts}
-          geodesicArcs={geodesicArcs}
-          globalSignals={globalSignals}
-          lastSenseUtc={lastSenseUtc}
-          isSensingNow={isSensingNow}
-          autoSenseEnabled={autoSenseEnabled}
-          onToggleAutoSense={() => setAutoSenseEnabled((v) => !v)}
-          onSenseNow={() => void handleSenseNow()}
-          onOpenCloudAgents={() => {
-            setBackendTab('cloud_agent');
-            setIsBackendOpen(true);
-          }}
-          qClockMinuteTick={qClockMinuteTick}
-          selectedItem={selectedItem}
-          onSelectItem={setSelectedItem}
-          isStreaming={effectiveStreaming}
-          onToggleStream={() => {
-            if (remainingSeedEvents.length === 0) return;
-            setIsStreaming((v) => !v);
-          }}
-          onStepForward={handleStepForward}
-          onResetTimeline={handleResetTimeline}
-          onSimulateAiEvent={handleSimulateAiEvent}
-          isSimulatingAi={isAnalyzingAi}
-          hasMoreSeedEvents={remainingSeedEvents.length > 0}
-        />
-      </main>
+
 
       {/* Instant Full Scenario Slide-Over on Clicking ANY News, Forecast, Global Signal, or Encrypted Map Node */}
       <ScenarioDetailDrawer
@@ -680,6 +712,7 @@ export default function ResearchWorkspace() {
         isAnalyzingAi={isAnalyzingAi}
         onOpenBackendMechanics={() => {
           setSelectedItem(null);
+          setIsProMode(true);
           setBackendTab('semiotics');
           setIsBackendOpen(true);
         }}
@@ -687,7 +720,7 @@ export default function ResearchWorkspace() {
 
       {/* Hidden-by-default Backend Mechanics Modal (Dual Maps, Pi Math, ACH, Cloud SoloHost/Hermes, x402) */}
       <BackendMechanicsModal
-        open={isBackendOpen}
+        open={isProMode && isBackendOpen}
         onClose={() => setIsBackendOpen(false)}
         activeTab={backendTab}
         onChangeTab={setBackendTab}
