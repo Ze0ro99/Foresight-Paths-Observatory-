@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSupabaseServerHeaders, getSupabaseServerKeyKind } from '@/lib/supabase-server-headers.mjs';
 import { enrichGlobalSignal } from '@/lib/world-monitor-engine';
 import { GlobalSensedSignal } from '@/lib/types';
 
@@ -32,11 +33,12 @@ async function persistHazards(
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key || key === 'YOUR_SUPABASE_SERVICE_ROLE_KEY') return 'not_configured';
+  const keyKind = getSupabaseServerKeyKind(key);
+  if (keyKind !== 'secret_key' && keyKind !== 'legacy_service_role_jwt') return 'server_key_misconfigured';
   if (rows.length === 0) return 'no_new_rows';
 
   const headers = {
-    apikey: key,
-    Authorization: 'Bearer ' + key,
+    ...getSupabaseServerHeaders(key),
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };

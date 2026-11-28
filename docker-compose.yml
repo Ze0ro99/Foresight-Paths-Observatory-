@@ -1,0 +1,35 @@
+services:
+  foresight-paths:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_PI_SANDBOX_MODE: "false"
+        NEXT_PUBLIC_PI_PAYMENTS_ENABLED: "false"
+    image: foresight-paths:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      PI_NETWORK: "Pi Testnet"
+      PI_DIRECT_TESTNET_ENABLED: "true"
+      PI_SANDBOX_MODE: "false"
+      NEXT_PUBLIC_PI_SANDBOX_MODE: "false"
+      NEXT_PUBLIC_PI_PAYMENTS_ENABLED: "false"
+      PI_PAYMENTS_ENABLED: "false"
+      PI_PAYMENT_INTENT_LEDGER_READY: "false"
+      PI_ENTITLEMENT_LEDGER_ENABLED: "false"
+      PI_MAINNET_PAYMENTS_APPROVED: "false"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

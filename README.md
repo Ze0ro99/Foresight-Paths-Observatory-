@@ -7,8 +7,8 @@ Foresight Paths is a research workspace for source-attributed event mapping, com
 - Arabic-first, right-to-left interface.
 - Event and trajectory mapping with source-attributed inputs.
 - Analysis and scenario tools for research workflows.
-- Optional server-side Gemini analysis when configured.
-- Pi SDK is loaded for future/available Pi Browser integration; the presence of the SDK alone does not establish completed Pi authentication or payment functionality.
+- Server-side Gemini analysis using a configurable model (`GEMINI_MODEL`, default `gemini-3.8-flash`) when a valid API key is configured.
+- Pi SDK v2 direct Testnet identity path with server-side Pioneer token verification; identity-only mode requests `username` scope and keeps payments/entitlements disabled by release gates.
 
 ## Important limitations
 
@@ -46,11 +46,11 @@ npm test
 npm run build
 ```
 
-The built-in Node test runner currently covers exact Pi stroop-to-Pi fee conversion; extend it with route and payment-state regression tests as those flows are enabled.
+The built-in Node test runner covers Gemini model selection, GDELT response validation/fallback query shape, Pi Testnet readiness, payment recovery validation, and exact Pi stroop fee conversion. The repository does not yet commit an npm lockfile; CI and Docker currently resolve dependencies with npm install. Route-level end-to-end inference and Pi Browser flows still require credentialed runtime tests.
 
 ## Deployment
 
-The production deployment is managed separately. See [Production Setup](docs/PRODUCTION_SETUP.md) for environment variables, safe defaults, smoke checks, and release gates. Never commit API keys or other secrets.
+The production deployment is managed separately. See [Production Setup](docs/PRODUCTION_SETUP.md) for environment variables, safe defaults, smoke checks, and release gates. For local container deployment, follow [Docker Deployment](docs/DOCKER_DEPLOYMENT.md). Never commit API keys or other secrets.
 
 ## PiOS and Pi ecosystem documentation
 

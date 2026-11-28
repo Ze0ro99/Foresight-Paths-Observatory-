@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPiGatewayReadiness } from '@/lib/pi-readiness.mjs';
+import { getGeminiModel } from '@/lib/gemini-config.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,13 +23,17 @@ export async function GET() {
   const checks = {
     application: 'ok',
     globalSense: 'available_with_partial_source_coverage',
-    geminiAnalysis: geminiConfigured ? 'configured' : 'not_configured',
+    geminiAnalysis: geminiConfigured ? 'api_key_present_not_live_tested' : 'not_configured',
+    geminiModel: getGeminiModel(),
     piIdentity: 'requires_pi_browser_session',
     paymentIntentLedger: piIntentLedgerReady ? 'ready_flag_set' : 'disabled',
     paidEntitlements: piEntitlementLedgerEnabled ? 'enabled_flag_set_but_not_implemented' : 'disabled',
     supabaseLedger: supabaseLedgerConfigured
-      ? 'server_credentials_configured'
-      : 'read_only_data_only_private_ledger_key_missing',
+      ? 'server_key_format_valid'
+      : piReadiness.supabaseServerKeyKind === 'missing'
+        ? 'read_only_data_only_private_ledger_key_missing'
+        : 'read_only_data_only_invalid_server_key',
+    supabaseServerKeyKind: piReadiness.supabaseServerKeyKind,
     piPayments: piReadiness.status,
     piPaymentMissingRequirements: piReadiness.missingRequirements,
     piPaymentExecutionEnabled,

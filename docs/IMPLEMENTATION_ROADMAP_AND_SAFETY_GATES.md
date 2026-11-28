@@ -110,13 +110,13 @@ The official Pi Developer documentation was checked against the repository imple
 | Official requirement | Repository implementation | Result |
 |---|---|---|
 | Load the official SDK script from `https://sdk.minepi.com/pi-sdk.js` | `app/layout.tsx` loads the SDK through Next.js `afterInteractive` | Implemented; runtime verification in Pi Browser remains required |
-| Initialize Testnet with `Pi.init({ version: "2.0", sandbox: true })` before SDK methods | `components/PiSandboxPaymentPanel.tsx` initializes Sandbox before authentication/payment | Implemented; Mainnet mode is not enabled |
-| Authenticate through the SDK and verify the access token server-side | `Pi.authenticate(['username','payments'], ...)`; backend validates with `GET /v2/me` using Bearer auth | Implemented; requires an actual Pi Browser session |
+| Initialize the registered Pi Testnet app with SDK v2 before SDK methods | `app/layout.tsx` loads the official SDK; both client surfaces initialize using `NEXT_PUBLIC_PI_SANDBOX_MODE` (direct Testnet Preview uses `false`) | Implemented; Pi Browser session verification is still required |
+| Authenticate with least privilege and verify the access token server-side | shared `getPiAuthScopes()` requests `username` only while `NEXT_PUBLIC_PI_PAYMENTS_ENABLED=false`, and adds `payments` only after explicit client approval; backend validates with `GET /v2/me` using Bearer auth | Implemented; requires an actual Pi Browser session |
 | Approve U2A payment server-side with the app Server API Key | Backend retrieves the payment with `Authorization: Key`, checks server-known plan, app metadata, Testnet network, direction, amount and user UID, then approves | Implemented; credential-dependent |
 | Complete and read back payment state | Backend completes through Platform API, re-reads the PaymentDTO, and requires matching txid plus `transaction_verified`, `developer_completed`, and transaction verification before ledger completion | Implemented; credential-dependent |
 | Handle the SDK's incomplete-payment callback | Recovery now begins inside `onIncompletePaymentFound` without waiting for `Pi.authenticate()` to resolve. The server fetches the PaymentDTO by payment ID using the app key, checks ownership/app/network/plan/amount/txid, approves if needed, completes, reads back, then persists completion | Implemented in code and unit-tested; real Sandbox interruption/recovery test pending |
 | Keep server key private and don't trust browser payment metadata | Pi key remains server-side; recovery derives plan, UID, amount, network, and txid from the Pi Platform API response | Implemented |
-| Keep Mainnet and paid entitlement release distinct | Sandbox is hard-coded for this UI; database constrains payments to Testnet; entitlement and Mainnet flags remain false | Kept disabled |
+| Keep Mainnet and paid entitlement release distinct | App remains registered for Pi Testnet; direct SDK mode is explicit; server payment, payment-intent, entitlement, and Mainnet flags remain false | Kept disabled |
 
 Official references:
 - Getting Started: https://developers.minepi.com/docs/build-first-app/GettingStarted
