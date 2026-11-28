@@ -28,13 +28,15 @@ export default function PiAppStudioSignIn() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/pi/auth', { credentials: 'same-origin', cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.authenticated && typeof data.user?.username === 'string') {
-          setUsername(data.user.username);
-        }
+    Promise.all([
+      fetch('/api/pi/auth', { credentials: 'same-origin', cache: 'no-store' }),
+      fetch('/api/pi/oauth-auth', { credentials: 'same-origin', cache: 'no-store' }),
+    ])
+      .then(async ([appAuthResponse, oauthResponse]) => {
+        const appAuth = appAuthResponse.ok ? await appAuthResponse.json() : null;
+        const oauthAuth = oauthResponse.ok ? await oauthResponse.json() : null;
+        const user = appAuth?.authenticated ? appAuth.user : oauthAuth?.authenticated ? oauthAuth.user : null;
+        if (typeof user?.username === 'string') setUsername(user.username);
       })
       .catch(() => {});
 
@@ -128,7 +130,10 @@ export default function PiAppStudioSignIn() {
 
   async function signOut() {
     try {
-      await fetch('/api/pi/auth', { method: 'DELETE', credentials: 'same-origin' });
+      await Promise.all([
+        fetch('/api/pi/auth', { method: 'DELETE', credentials: 'same-origin' }),
+        fetch('/api/pi/oauth-auth', { method: 'DELETE', credentials: 'same-origin' }),
+      ]);
     } finally {
       setUsername(null);
     }
