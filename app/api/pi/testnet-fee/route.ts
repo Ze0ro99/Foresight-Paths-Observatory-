@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 15;
 
 type LedgerResponse = {
-  _embedded?: { records?: Array<{ sequence?: string; base_fee_in_stroops?: string; closed_at?: string }> };
+  _embedded?: { records?: Array<{ sequence?: string; base_fee_in_stroops?: string | number; closed_at?: string }> };
 };
 
 export async function GET() {
@@ -22,19 +22,26 @@ export async function GET() {
     }
     const payload = (await response.json()) as LedgerResponse;
     const ledger = payload._embedded?.records?.[0];
-    if (!ledger?.base_fee_in_stroops || !ledger.sequence) {
+    const rawFee = ledger?.base_fee_in_stroops;
+    const validFee =
+      (typeof rawFee === 'string' && /^\\d+$/.test(rawFee)) ||
+      (typeof rawFee === 'number' && Number.isSafeInteger(rawFee) && rawFee >= 0);
+    if (!ledger?.sequence || !validFee) {
       return NextResponse.json(
-        { network: 'Pi Testnet', status: 'unavailable', reason: 'Latest ledger fee data missing.' },
+        { network: 'Pi Testnet', status: 'unavailable', reason: 'Latest ledger fee data is missing or invalid.' },
         { status: 502, headers: { 'Cache-Control': 'no-store' } },
       );
     }
+
+    // Normalize Horizon's numeric or string JSON representation for a stable API contract.
+    const baseFeeStroops = String(rawFee);
     return NextResponse.json(
       {
         network: 'Pi Testnet',
         status: 'connected',
         ledgerSequence: ledger.sequence,
-        baseFeeStroops: ledger.base_fee_in_stroops,
-        baseFeePi: stroopsToPi(ledger.base_fee_in_stroops),
+        baseFeeStroops,
+        baseFeePi: stroopsToPi(baseFeeStroops),
         ledgerClosedAt: ledger.closed_at ?? null,
         fetchedAtUtc: new Date().toISOString(),
         source: 'https://api.testnet.minepi.com/ledgers',
