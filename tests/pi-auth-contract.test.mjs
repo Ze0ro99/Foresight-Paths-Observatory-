@@ -12,11 +12,11 @@ test('loads official Pi SDK before hydration and keeps the CSP nonce', async () 
   assert.doesNotMatch(layout, /next\/font\/google/);
 });
 
-test('initializes the Pi SDK with the configured and shared SDK mode', async () => {
+test('awaits Pi SDK v2 initialization without passing sandbox', async () => {
   const sdk = await read('../lib/pi-sdk-client.ts');
-  assert.match(sdk, /init\(\{ version: '2\.0', sandbox \}\)/);
-  assert.match(sdk, /__foresightPiSdkSandbox/);
-  assert.match(sdk, /NEXT_PUBLIC_PI_SANDBOX_MODE === 'true'/);
+  assert.match(sdk, /await initialization/);
+  assert.match(sdk, /init\\(\\{ version: '2\\.0' \\}\\)/);
+  assert.doesNotMatch(sdk, /init\\(\\{[^}]*sandbox/);
 });
 
 test('App Studio sign-in requests username only and submits only the access token', async () => {
