@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     "connect-src 'self' https://socialchain.app https://mlrbbnjoczpfmbgewgrm.supabase.co",
-    "frame-ancestors 'self' https://*.pinet.com https://*.minepi.com",
+    "frame-ancestors 'self' https://appstudio-u7cm9zhmha0ruwv8.piappengine.com https://*.pinet.com https://*.minepi.com",
     "upgrade-insecure-requests",
   ].join('; ');
 

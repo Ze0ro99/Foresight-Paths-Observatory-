@@ -18,6 +18,7 @@ test('Pi browser CSP uses a request nonce and explicit Pi origins', async () => 
   assert.doesNotMatch(connectSrc, /\*/);
   assert.doesNotMatch(connectSrc, /backend\.appstudio/);
   assert.match(frameAncestors, /https:\/\/\*\.pinet\.com/);
+  assert.ok(frameAncestors.includes('https://appstudio-u7cm9zhmha0ruwv8.piappengine.com'));
   assert.match(frameAncestors, /https:\/\/\*\.minepi\.com/);
   assert.doesNotMatch(frameAncestors, /(^|\s)\*(\s|;|$)/);
   assert.match(middleware, /pi-app-validation\.txt/);
