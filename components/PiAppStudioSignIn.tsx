@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { initializePiSdk } from '@/lib/pi-sdk-client';
 
 type PiSdk = {
   init: (config: { version: string }) => Promise<void> | void;
@@ -81,7 +82,7 @@ export default function PiAppStudioSignIn() {
     setError(null);
     try {
       if (!window.Pi) throw new Error('Pi SDK is not available. Open this app in Pi Browser and try again.');
-      await window.Pi.init({ version: '2.0' });
+      await initializePiSdk();
       const auth = await window.Pi.authenticate(['username'], () => {
         // This app does not initiate payments; leave incomplete-payment recovery to the payment flow.
       });
