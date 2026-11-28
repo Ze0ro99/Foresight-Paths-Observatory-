@@ -109,15 +109,20 @@ export default function PiAppStudioSignIn() {
     setError(null);
     try {
       const clientId = process.env.NEXT_PUBLIC_PI_OAUTH_CLIENT_ID;
+      const redirectUri = process.env.NEXT_PUBLIC_PI_OAUTH_REDIRECT_URI;
       if (!clientId) throw new Error('Pi OAuth Client ID is not configured for this deployment.');
+      if (!redirectUri) throw new Error('The exact Pi OAuth redirect URI is not configured.');
+      const registeredRedirect = new URL(redirectUri);
+      if (registeredRedirect.protocol !== 'https:' || registeredRedirect.origin !== window.location.origin) {
+        throw new Error('Pi OAuth is enabled only on its registered HTTPS domain. Open the production app URL in Pi Browser.');
+      }
       if (!window.Pi) throw new Error('Pi SDK is not available. Open this app in Pi Browser and try again.');
       await window.Pi.init({ version: '2.0' });
       const state = window.crypto.randomUUID();
       sessionStorage.setItem('pi_oauth_state', state);
-      // The Developer Portal currently registers the production root URL as the redirect URI.
       window.Pi.signIn({
         clientId,
-        redirectUri: window.location.origin,
+        redirectUri,
         scopes: ['username'],
         state,
       });
