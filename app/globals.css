@@ -3,9 +3,9 @@
 
 @layer base {
   :root {
-    --font-display: "Cairo", "Noto Sans Arabic", "Segoe UI", system-ui, sans-serif;
-    --font-body: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Noto Naskh Arabic", "Segoe UI", system-ui, sans-serif;
-    --font-mono: "IBM Plex Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    --font-display: var(--font-cairo), sans-serif;
+    --font-body: var(--font-plex-arabic), sans-serif;
+    --font-mono: var(--font-plex-mono), monospace;
   }
 
   body {

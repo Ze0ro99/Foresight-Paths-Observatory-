@@ -250,7 +250,7 @@ export default function CloudAgentView({
         return;
       }
       try {
-        await initializePiSdk();
+        await initializePiSdk(process.env.NEXT_PUBLIC_PI_SANDBOX_MODE !== 'false');
         if (!cancelled) setSdkReady(true);
       } catch {
         if (!cancelled) setSdkError(locale === 'ar' ? 'افتح التطبيق داخل Pi Browser على تطبيق Testnet المسجل.' : 'Open this app in Pi Browser under the registered Testnet app.');
@@ -309,7 +309,7 @@ export default function CloudAgentView({
       const auth = await window.Pi.authenticate(['username'], () => undefined);
       if (!auth?.accessToken) throw new Error(ar ? 'لم يُرجع Pi رمز جلسة صالحًا.' : 'Pi did not return a valid session token.');
       setAccessToken(auth.accessToken);
-      // Pi's browser response is not the trusted identity source; the server verifies identity.
+      setUsername(auth.user?.username || null);
       const snapshot = await callWorkbench(auth.accessToken, 'bootstrap');
       applySnapshot(snapshot);
       setNotice(ar ? 'تم التحقق من هويتك وفتح مساحة العمل.' : 'Your Pi identity was verified and your workbench is ready.');

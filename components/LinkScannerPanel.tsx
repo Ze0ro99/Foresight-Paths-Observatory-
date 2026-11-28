@@ -30,7 +30,7 @@ export default function LinkScannerPanel({locale}:{locale:AppLocale}){
    attempts++;
    if(!window.Pi){if(attempts>=40){window.clearInterval(timer);if(active)setSdkError(ar?'افتح المنصة من Pi Browser لتحليل الرابط بعد تسجيل الدخول.':'Open this platform in Pi Browser to sign in and inspect a link.');}return;}
    window.clearInterval(timer);
-   void initializePiSdk().then(()=>{if(active)setSdkReady(true);}).catch((error:unknown)=>{if(active)setSdkError(error instanceof Error?error.message:'Pi SDK initialization failed.');});
+   void initializePiSdk(sandboxMode).then(()=>{if(active)setSdkReady(true);}).catch((error:unknown)=>{if(active)setSdkError(error instanceof Error?error.message:'Pi SDK initialization failed.');});
   },250);
   return()=>{active=false;window.clearInterval(timer);};
  },[ar,sandboxMode]);
