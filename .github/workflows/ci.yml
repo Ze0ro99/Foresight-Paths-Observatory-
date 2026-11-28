@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, feat/v1-testnet-direct-mode-rebased]
+    branches: [main, feat/v1-testnet-direct-mode-rebased, feat/agent-operations-workbench-testnet, feat/pi-appstudio-auth-validation]
   push:
     branches: [main]
 

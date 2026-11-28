@@ -2,6 +2,14 @@
 
 The public deployment can serve the read-only map without credentials. Optional integrations remain unavailable until their credentials and supporting infrastructure are configured.
 
+## Pi Browser identity and PiNet embedding
+
+- Load the official Pi SDK in the document head and await `Pi.init({ version: '2.0' })` before requesting `Pi.authenticate(['username'], onIncompletePaymentFound)`. Do not pass a Sandbox option; Pi Browser detects the network.
+- The browser sends only the returned `accessToken` to `/api/pi/auth`. The server exchanges it with the App Studio login endpoint and trusts only the identity returned by App Studio. Browser-supplied UID and username are ignored.
+- The App Studio session token is encrypted server-side and stored in an `HttpOnly; Secure; SameSite=None` cookie for PiNet iframe use. Keep `PI_APP_SESSION_SECRET` server-only.
+- Browser `connect-src` is explicit: `'self'`, `https://socialchain.app`, and the configured Supabase origin. The App Studio backend is not in browser CSP because the token exchange is server-side.
+- Pi identity sign-in requests only the `username` scope. Payment and entitlement gates remain disabled until separately approved and tested.
+
 ## 1. Vercel environment variables
 
 Add the following under **Project → Settings → Environment Variables**, for Preview and Production as appropriate:
