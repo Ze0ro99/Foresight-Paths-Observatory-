@@ -6,6 +6,12 @@ type PiSdk = {
     scopes: string[],
     onIncompletePaymentFound: (payment: unknown) => void,
   ) => Promise<{ accessToken: string; user?: { uid?: string; username?: string } }>;
+  signIn?: (options: {
+    clientId: string;
+    redirectUri: string;
+    scopes?: string[];
+    state?: string;
+  }) => void;
 };
 
 type PiWindowState = Window & {
@@ -19,10 +25,7 @@ declare global {
   }
 }
 
-/**
- * Initialize the Pi SDK once. Pi Browser detects the network automatically;
- * the optional legacy argument is ignored and never forwarded to Pi.init.
- */
+/** Initialize Pi SDK once; Pi Browser detects the network automatically. */
 export async function initializePiSdk(_legacySandbox?: boolean): Promise<void> {
   void _legacySandbox;
 

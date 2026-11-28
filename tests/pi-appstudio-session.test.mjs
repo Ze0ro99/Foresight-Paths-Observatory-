@@ -47,3 +47,14 @@ test('rejects weak secrets and incomplete App Studio identity', () => {
     user: { uid: '', username: 'name' },
   }, secret));
 });
+
+test('supports a one-hour OAuth session lifetime', () => {
+  const now = 1_800_000_000_000;
+  const cookie = sealPiAppStudioSession({
+    sessionToken: 'oauth-access-token',
+    user: { uid: 'oauth-uid', username: 'oauth-user' },
+  }, secret, now, 3600);
+
+  assert.ok(openPiAppStudioSession(cookie, secret, now + 3599_000));
+  assert.equal(openPiAppStudioSession(cookie, secret, now + 3600_000), null);
+});
