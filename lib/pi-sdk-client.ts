@@ -1,7 +1,7 @@
 'use client';
 
 type PiSdk = {
-  init: (config: { version: string }) => Promise<void> | void;
+  init: (config: { version: string; sandbox?: boolean }) => Promise<void> | void;
   authenticate: (
     scopes: string[],
     onIncompletePaymentFound: (payment: unknown) => void,
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-/** Initialize Pi SDK once and let Pi Browser detect the network automatically. */
+/** Initialize Pi SDK once; the registered app network remains controlled by Pi Developer Portal. */
 export async function initializePiSdk(): Promise<void> {
   if (typeof window === 'undefined' || !window.Pi) {
     throw new Error('Pi SDK is not available in this browser.');
@@ -26,7 +26,8 @@ export async function initializePiSdk(): Promise<void> {
   }
 
   const pi = window.Pi;
-  const initialization = Promise.resolve(pi.init({ version: '2.0' })).then(() => undefined);
+  const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX_MODE === 'true';
+  const initialization = Promise.resolve(pi.init({ version: '2.0', sandbox })).then(() => undefined);
   window.__foresightPiSdkInit = initialization;
 
   try {

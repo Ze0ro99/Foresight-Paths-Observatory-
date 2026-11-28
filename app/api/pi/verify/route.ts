@@ -293,7 +293,11 @@ export async function GET() {
   return NextResponse.json({
     service: 'Pi verification gateway',
     status: readiness.status,
+    network: readiness.network,
     sandboxMode: readiness.sandboxMode,
+    clientSandboxMode: readiness.clientSandboxMode,
+    sandboxSettingsMatch: readiness.sandboxSettingsMatch,
+    directTestnetEnabled: readiness.directTestnetEnabled,
     serverKeyConfigured: readiness.piApiKeyConfigured,
     ledgerConfigured: readiness.ledgerConfigured,
     paymentIntentLedgerReady: readiness.paymentIntentLedgerReady,
@@ -304,7 +308,7 @@ export async function GET() {
       : 'disabled_until_testnet_credentials_and_release_gates_pass',
     paymentEnabled: readiness.paymentEnabled,
     plans: AUTHORITATIVE_PLAN_PRICES_PI,
-    note: 'Only Testnet/Sandbox is accepted by this gateway. A successful settlement is persisted, but no paid entitlement is granted by this route.',
+    note: 'Only the registered Pi Testnet app is accepted. SDK Sandbox is a separate development setting and must match the server setting. Mainnet is rejected and no paid entitlement is granted by this route.',
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
