@@ -58,7 +58,7 @@ export default function PiAppStudioSignIn() {
       return;
     }
 
-    setBusy(true);
+    queueMicrotask(() => setBusy(true));
     fetch('/api/pi/oauth-auth', {
       method: 'POST',
       credentials: 'same-origin',
