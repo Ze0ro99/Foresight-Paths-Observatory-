@@ -50,11 +50,11 @@ export default function PiAppStudioSignIn() {
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
 
     if (!expectedState || params.get('state') !== expectedState) {
-      setError('Pi OAuth state validation failed. Please start sign-in again.');
+      queueMicrotask(() => setError('Pi OAuth state validation failed. Please start sign-in again.'));
       return;
     }
     if (oauthError) {
-      setError(`Pi Sign-In was not completed: ${oauthError}`);
+      queueMicrotask(() => setError(`Pi Sign-In was not completed: ${oauthError}`));
       return;
     }
 
